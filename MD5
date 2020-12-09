@@ -1,0 +1,16 @@
+5732cc4cea28ce9ff0aa7eb1e556a1ff *DESCRIPTION
+28ce7555a393a9c669970b4a8fd690f8 *NAMESPACE
+794c53eee92e16e9b625947e7648565d *R/ARE_cbe.R
+2b25b67fc49f606cb7e8b1f0e9c1b161 *R/CompARE-package.R
+f1c73361d8ea72f80e87c9c1754d8f44 *R/effectsize_cbe.R
+8b088b8500441ea1244caf85fa1d8d8b *R/lower_corr.R
+2ba624383b1c25e2f30b91c4d2f9a16b *R/prob_cbe.R
+f4fa8e79984cf37b9e2975e1b1057237 *R/sample_size_cbe.R
+82002707ec5c41d74eae83c5f18f41d3 *R/upper_corr.R
+9a09a1aae068684863feeeab9eef826e *man/ARE_cbe.Rd
+5f962e8b30262602bb9bf89a1619faad *man/CompAREdesign-package.Rd
+22c376e94c85ff52ee1c5089411ba6bc *man/effectsize_cbe.Rd
+9e8ee0ab3d08c2ad00976dfd085277c9 *man/lower_corr.Rd
+09cb05b6fb00d43c07ed1c299c383a23 *man/prob_cbe.Rd
+037a793b2c471722c46827c47162cd02 *man/samplesize_cbe.Rd
+a8b103eebb160012171f48460bba3e56 *man/upper_corr.Rd
