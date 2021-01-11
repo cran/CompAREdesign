@@ -6,6 +6,8 @@
 \alias{CompAREdesign-package}
 \title{CompAREdesign: Statistical Functions for the Design of Studies with Composite Endpoints}
 \description{
-It has been designed to calculate the required sample size in randomized clinical trials with composite endpoints. This package also includes functions to calculate the probability of observing the composite endpoint and the expected effect on the composite endpoint, among others. The methods implemented can be found in  Bofill & Gómez (2019) (DOI:10.1002/sim.8092) and Gómez & Lagakos (2013) (DOI:10.1002/sim.5547).
+\if{html}{\figure{logo.png}{options: align='right' alt='logo' width='120'}}
+
+It has been designed to calculate the required sample size in randomized clinical trials with composite endpoints. This package also includes functions to calculate the probability of observing the composite endpoint and the expected effect on the composite endpoint, among others. The methods implemented can be found in  Bofill & Gómez (2019) <doi:10.1002/sim.8092> and Gómez & Lagakos (2013) <doi:10.1002/sim.5547>.
 }
 \keyword{internal}

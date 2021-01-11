@@ -1,6 +1,7 @@
 #' ARE method for composite binary endpoints
 #'
-#' @description The composite endpoint is assumed to be a binary endpoint formed by a combination of two events (E1 and E2). This function calculates the ARE method for binary endpoints. The method quantifies the differences in efficiency of using the composite or the relevant as primary endpoint to lead the trial and, moreover, provides a decision rule to choose the primary endpoint. If the ARE is larger than 1, the composite endpoint may be considered the best option as primary endpoint. Otherwise, the relevant endpoint is preferred. 
+#' @description The composite endpoint is assumed to be a binary endpoint formed by a combination of two events (E1 and E2). We assume that the endpoint 1 is more relevant for the clinical question than endpoint 2. 
+#' This function calculates the ARE method for binary endpoints. The method quantifies the differences in efficiency of using the composite or the relevant as primary endpoint to lead the trial and, moreover, provides a decision rule to choose the primary endpoint. If the ARE is larger than 1, the composite endpoint may be considered the best option as primary endpoint. Otherwise, the relevant endpoint is preferred. 
 #' 
 #'
 #' @param p0_e1 numeric parameter, probability of occurrence E1 in the control group
