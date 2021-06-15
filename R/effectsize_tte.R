@@ -46,6 +46,8 @@
 #' 
 #' \describe{
 #'     \item{\code{pstar}}{array with the probability of observing the composite event for each group}
+#'     \item{\code{p1}}{array with the probability of observing the first event for each group}
+#'     \item{\code{p2}}{array with the probability of observing the second event for each group}
 #'     \item{\code{RMST}}{array with the restricted mean survival time for each group}
 #'     \item{\code{Median}}{array with the median surival time for each group}
 #' }
@@ -117,6 +119,10 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, cas
   T20param <- MarginSelec[[6]]
   T11param <- MarginSelec[[7]]
   T21param <- MarginSelec[[8]]
+  
+  ##-- Probabilities of observing the event in the treated group
+  p1_e1 <- MarginSelec[[9]]
+  p1_e2 <- MarginSelec[[10]]
   
   ##-- Scale parameters
   b10 <- T10param[[2]]
@@ -233,6 +239,8 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, cas
                                'RMST_ratio' = round(RMST_1/RMST_0,4),
                                'Median_Ratio' = round(Med_1/Med_0,4)),
               measures_by_group=list('pstar'= c('Reference'=pstar_0,'Treated'=pstar_1),
+                                     'p_e1'= c('Reference'=p0_e1,'Treated'=p1_e1),
+                                     'p_e2'= c('Reference'=p0_e2,'Treated'=p1_e2),
                                      'RMST'= c('Reference'=RMST_0,'Treated'=RMST_1),
                                      'Median'= c('Reference'=Med_0,'Treated'=Med_1))))
 }
