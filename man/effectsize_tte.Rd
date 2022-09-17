@@ -15,8 +15,10 @@ effectsize_tte(
   copula = "Frank",
   rho = 0.3,
   rho_type = "Spearman",
+  followup_time = 1,
   subdivisions = 1000,
-  plot_HR = FALSE
+  plot_res = FALSE,
+  plot_store = FALSE
 )
 }
 \arguments{
@@ -44,12 +46,18 @@ effectsize_tte(
 
 \item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.}
 
+\item{followup_time}{numeric parameter indicating the maximum follow up time (in any unit). Default is 1.}
+
 \item{subdivisions}{integer parameter greater than or equal to 10. Number of subintervals to estimate the effect size. The default is 1000.}
 
-\item{plot_HR}{logical. If the HR over time should be displayed. The default is FALSE}
+\item{plot_res}{logical indicating if the HR over time should be displayed. The default is FALSE}
+
+\item{plot_store}{logical indicating if the plot of HR over time should is stored for future customization. The default is FALSE}
 }
 \value{
-A list formed by two lists: \code{effect_size}, which contains the expected treatment effect measures and \code{measures_by_group}, which contains some measures for each group
+A list formed by two lists: \code{effect_size}, which contains the 
+expected treatment effect measures and \code{measures_by_group}, which contains 
+some relevant measures for each group
 
 \code{effect_size} list:
 
@@ -69,12 +77,15 @@ A list formed by two lists: \code{effect_size}, which contains the expected trea
     \item{\code{RMST}}{array with the restricted mean survival time for each group}
     \item{\code{Median}}{array with the median surival time for each group}
 }
+
+In addition, if \code{plot_store=TRUE} an object of class \code{ggplot} with
+the HR over time for composite endpoint is stored in the list.
 }
 \description{
 This function calculates different effect measures for time-to-event composite outcomes. 
 The composite endpoint is assumed to be a time-to-event endpoint formed by a combination of two events (E1 and E2).
 The effect size is calculated on the basis of anticipated information on the composite components and the correlation between them.
-Marginal distributions are assumed for m
+Marginal distributions are assumed weibull for both endpoints.
 The function allows to compute the effect size in terms of the geometric average hazard ratio, the average hazard ratio, 
 the ratio of restricted mean survival times and the median survival time ratio.
 }

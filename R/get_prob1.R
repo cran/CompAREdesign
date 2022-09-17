@@ -1,0 +1,25 @@
+get_prob1 <- function(beta1,beta2,b11,b21,case,rho,copula='Frank',endpoint){
+  
+  ##-- Build copula
+  copula0 <- CopulaSelection(copula=copula,rho=rho,rho_type='Spearman')
+  which.copula <- copula0[[1]]
+  theta <- copula0[[2]]
+  if(copula=="Frank")   which.copula <-  archmCopula(family = "frank", dim = 2, param = theta)
+  if(copula=="Gumbel")  which.copula <-  archmCopula(family = "gumbel", dim = 2, param = theta)
+  if(copula=="Clayton") which.copula <-  archmCopula(family = "clayton", dim = 2, param = theta)
+  distribution1 <- mvdc(copula = which.copula, 
+                        margins = c("weibull", "weibull"), 
+                        paramMargins = list(list(shape = beta1, scale = b11),
+                                            list(shape = beta2, scale = b21)))
+  
+  ##-- Function to calculate probabilities
+  prop_p <- function(d,p) sum(d[,p]<d[,3-p])/nrow(d)
+  
+  ##-- Calculate probabilities
+  set.seed(12345)
+  d <- rMvdc(10000,distribution1)
+  p1 <- prop_p(d=d,p=endpoint)
+  
+  return(p1)
+}
+

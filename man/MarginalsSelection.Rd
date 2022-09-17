@@ -12,6 +12,7 @@ MarginalsSelection(
   p1,
   p2,
   case,
+  rho,
   theta,
   copula = "Frank"
 )

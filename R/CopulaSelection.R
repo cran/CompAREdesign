@@ -14,9 +14,9 @@
 #'
 
 
-CopulaSelection <- function(copula,rho,rhoType='Spearman'){
+CopulaSelection <- function(copula,rho,rho_type='Spearman'){
   
-  if(rhoType=='Spearman'){
+  if(rho_type=='Spearman'){
     theta <- switch(copula,
                     Frank =       iRho(frankCopula(1),rho),
                     Gumbel =      iRho(gumbelCopula(2),rho),

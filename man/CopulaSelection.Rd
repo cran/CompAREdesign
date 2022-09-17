@@ -4,7 +4,7 @@
 \alias{CopulaSelection}
 \title{Copula object}
 \usage{
-CopulaSelection(copula, rho, rhoType = "Spearman")
+CopulaSelection(copula, rho, rho_type = "Spearman")
 }
 \arguments{
 \item{copula}{Copula given from the following list: "Frank" (default), "Gumbel" , "Clayton", "Normal" , "T",

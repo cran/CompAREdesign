@@ -3,7 +3,7 @@
 #' @description This function calculates different effect measures for time-to-event composite outcomes. 
 #' The composite endpoint is assumed to be a time-to-event endpoint formed by a combination of two events (E1 and E2).
 #' The effect size is calculated on the basis of anticipated information on the composite components and the correlation between them.
-#' Marginal distributions are assumed for m
+#' Marginal distributions are assumed weibull for both endpoints.
 #' The function allows to compute the effect size in terms of the geometric average hazard ratio, the average hazard ratio, 
 #' the ratio of restricted mean survival times and the median survival time ratio.
 #' 
@@ -21,8 +21,10 @@
 #' @param copula character indicating the copula to be used: "Frank" (default), "Gumbel" or "Clayton". See details for more info.
 #' @param rho numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.
 #' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.
+#' @param followup_time numeric parameter indicating the maximum follow up time (in any unit). Default is 1.
 #' @param subdivisions integer parameter greater than or equal to 10. Number of subintervals to estimate the effect size. The default is 1000. 
-#' @param plot_HR logical. If the HR over time should be displayed. The default is FALSE
+#' @param plot_res logical indicating if the HR over time should be displayed. The default is FALSE
+#' @param plot_store logical indicating if the plot of HR over time should is stored for future customization. The default is FALSE
 #' 
 #' @import ggplot2
 #' @import rootSolve
@@ -31,7 +33,9 @@
 #' 
 #' @export 
 #'
-#' @return A list formed by two lists: \code{effect_size}, which contains the expected treatment effect measures and \code{measures_by_group}, which contains some measures for each group
+#' @return A list formed by two lists: \code{effect_size}, which contains the 
+#' expected treatment effect measures and \code{measures_by_group}, which contains 
+#' some relevant measures for each group
 #' 
 #' \code{effect_size} list:
 #' 
@@ -51,7 +55,10 @@
 #'     \item{\code{RMST}}{array with the restricted mean survival time for each group}
 #'     \item{\code{Median}}{array with the median surival time for each group}
 #' }
-#'   
+#'
+#' In addition, if \code{plot_store=TRUE} an object of class \code{ggplot} with
+#' the HR over time for composite endpoint is stored in the list.
+#'     
 #' @details Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions. 
 #' For the shape parameters (beta_e1, beta_e2) of the Weibull distribution, we recommend to use \eqn{\beta_j=0.5}, \eqn{\beta_j=1} or \eqn{\beta_j=2} if a decreasing, constant or increasing rates over time are expected, respectively.
 #' For the correlation (rho) between both endpoints, generally a positive value is expected as it has no sense to design an study with two endpoints negatively correlated. We recommend to use \eqn{\rho=0.1}, \eqn{\rho=0.3} or \eqn{\rho=0.5} for weak, mild and moderate correlations, respectively.
@@ -65,7 +72,10 @@
 #' @references Schemper, M., Wakounig, S., Heinze, G. (2009). The estimation of average hazard ratios by weighted Cox regression. Stat. in Med. 28(19): 2473--2489. doi:10.1002/sim.3623
 #'
 #'
-effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case, copula = 'Frank', rho=0.3, rho_type='Spearman', subdivisions=1000, plot_HR=FALSE){
+effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, 
+                           case, copula = 'Frank', rho=0.3, rho_type='Spearman',
+                           followup_time=1,
+                           subdivisions=1000, plot_res=FALSE, plot_store=FALSE){
  
   requireNamespace("stats")
   
@@ -91,8 +101,12 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, cas
     stop("The correlation type (rho_type) must be one of 'Spearman' or 'Kendall'")
   }else if(!(is.numeric(subdivisions) && subdivisions>=10)){
     stop("The number of subdivisions must be an integer greater than or equal to 10")
-  }else if(!is.logical(plot_HR)){
-    stop("The parameter plot_HR must be logical")
+  }else if(!(is.numeric(followup_time) && followup_time>0)){
+    stop("The followup_time must be a positive numeric value")      
+  }else if(!is.logical(plot_res)){
+    stop("The parameter plot_res must be logical")
+  }else if(!is.logical(plot_store)){
+    stop("The parameter plot_store must be logical")  
   }else if(case==4 && p0_e1 + p0_e2 > 1){
     stop("The sum of the proportions of observed events in both endpoints in case 4 must be lower than 1")
   }
@@ -106,7 +120,7 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, cas
   theta <- copula0[[2]]   
   
   ##-- Marginal distribution and parameters
-  MarginSelec <- MarginalsSelection(beta_e1,beta_e2,HR_e1,HR_e2,p0_e1,p0_e2,case,theta,copula=copula)
+  MarginSelec <- MarginalsSelection(beta_e1,beta_e2,HR_e1,HR_e2,p0_e1,p0_e2,case,rho,theta,copula=copula)
   
   ##-- Weibull marginal distributions
   T1dist   <- MarginSelec[[1]]
@@ -204,8 +218,8 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, cas
   AHR <- AHR_num/AHR_den                                                                 # Alternative AHR weighted by f_0 + f_1
     
   ##-- RMST (Restricted Mean Survival Time)
-  RMST_0 <- integrate(Sstar, dist1=T1pdist,dist2=T2pdist,param1=T10param,param2=T20param,dist_biv= distribution0, lower=0,upper=1,subdivisions=subdivisions)$value
-  RMST_1 <- integrate(Sstar, dist1=T1pdist,dist2=T2pdist,param1=T11param,param2=T21param,dist_biv= distribution1, lower=0,upper=1,subdivisions=subdivisions)$value
+  RMST_0 <- followup_time * integrate(Sstar, dist1=T1pdist,dist2=T2pdist,param1=T10param,param2=T20param,dist_biv= distribution0, lower=0,upper=1,subdivisions=subdivisions)$value
+  RMST_1 <- followup_time * integrate(Sstar, dist1=T1pdist,dist2=T2pdist,param1=T11param,param2=T21param,dist_biv= distribution1, lower=0,upper=1,subdivisions=subdivisions)$value
   
   ##-- Probability of event during follow_up
   pstar_0 <- 1 - Sstar(1,dist1=T1pdist,dist2=T2pdist,param1=T10param,param2=T20param,dist_biv= distribution0)
@@ -216,31 +230,54 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, cas
   
   ##-- Median
   limits <- c(0,10)                                                                         # The first and the last values must be in opposite signs for the function
-  Med_0 <- uniroot(Sstar_func_perc, interval=limits,extendInt="yes", perc=0.5,dist1=T1pdist,dist2=T2pdist,param1=T10param,param2=T20param,dist_biv= distribution0)$root  # Find the root (value which equals the function to zero). extendInt="yes": 'interval limits' is extended automatically if necessary
-  Med_1 <- uniroot(Sstar_func_perc, interval=limits,extendInt="yes", perc=0.5,dist1=T1pdist,dist2=T2pdist,param1=T11param,param2=T21param,dist_biv= distribution1)$root  # Find the root (value which equals the function to zero). extendInt="yes": 'interval limits' is extended automatically if necessary
+  Med_0 <- followup_time * uniroot(Sstar_func_perc, interval=limits,extendInt="yes", perc=0.5,dist1=T1pdist,dist2=T2pdist,param1=T10param,param2=T20param,dist_biv= distribution0)$root  # Find the root (value which equals the function to zero). extendInt="yes": 'interval limits' is extended automatically if necessary
+  Med_1 <- followup_time * uniroot(Sstar_func_perc, interval=limits,extendInt="yes", perc=0.5,dist1=T1pdist,dist2=T2pdist,param1=T11param,param2=T21param,dist_biv= distribution1)$root  # Find the root (value which equals the function to zero). extendInt="yes": 'interval limits' is extended automatically if necessary
   
   ##-- Probabilities p11,p21 (Not returned)
   # p11 <- 1-exp(-(1/b11)^beta_e1)
   # p21 <- 1-exp(-(1/b21)^beta_e2)
   
-  if(plot_HR){
+  f_time <- as.numeric(followup_time)          # follow_up_time 
+  
+  if(plot_res | plot_store){
     dd <- data.frame(t=t, HRstar=HRstar)
-    ymin <- min(HRstar,0.5)
-    ymax <- max(HRstar,1)
-    gg1 <- ggplot(dd, aes(x=t,y=HRstar)) + geom_line(color='blue',size=2) + 
+    ymin <- floor(min(HRstar)*10)/10                 # min(HRstar,0.5)
+    ymax <- max(ceiling(max(HRstar)*10)/10,ymin+0.1) # max(HRstar,1)
+    gg1 <- ggplot(dd, aes(x=t,y=HRstar)) + geom_line(color='darkblue',size=1.3) +
+      geom_hline(yintercept=1,linetype='dashed') + 
       ylim(ymin,ymax) + 
-      ggtitle('HR(t) of the composite endpoint') + 
-      xlab('Proportion of follow-up time') + ylab('HR*')
-    print(gg1)
+      scale_x_continuous(limits=c(0,1),breaks=pretty(0:1*f_time)/f_time,
+                         labels=pretty(0:1*f_time),expand=c(0,0.01)) +
+      # ggtitle('HR*(t) of the composite endpoint') + 
+      xlab('Time') + ylab('HR CE')
   }
   
-  return(list(effect_size=list('gAHR' = round(gAHR,4),
-                               'AHR' = round(AHR,4),
-                               'RMST_ratio' = round(RMST_1/RMST_0,4),
-                               'Median_Ratio' = round(Med_1/Med_0,4)),
-              measures_by_group=list('pstar'= c('Reference'=pstar_0,'Treated'=pstar_1),
-                                     'p_e1'= c('Reference'=p0_e1,'Treated'=p1_e1),
-                                     'p_e2'= c('Reference'=p0_e2,'Treated'=p1_e2),
-                                     'RMST'= c('Reference'=RMST_0,'Treated'=RMST_1),
-                                     'Median'= c('Reference'=Med_0,'Treated'=Med_1))))
+  ##-- Output data.frame
+  df <- data.frame('Effect measure'= c('--------------','gAHR','AHR','RMST ratio','Median ratio','','',''),
+                   'Effect value'  = c('------------',formatC(c(gAHR,AHR,RMST_1/RMST_0,Med_1/Med_0),format='f',digits=4),'','',''),
+                   '|' = rep('|',8),
+                   'Group measure' = c('-------------','','','RMST','Median','Prob. E1','Prob. E2','Prob. CE'),
+                   'Reference'     = c('---------','','',formatC(c(RMST_0,Med_0,p0_e1,p0_e2,pstar_0),format='f',digits=4)),
+                   'Treated'       = c('-------','','',formatC(c(RMST_1,Med_1,p1_e1,p1_e2,pstar_1),format='f',digits=4)),
+                   check.names = FALSE)
+  print(df, row.names = FALSE,right=FALSE)
+  
+  return_object <- list(effect_size=list('gAHR' = round(gAHR,4),
+                                         'AHR' = round(AHR,4),
+                                         'RMST_ratio' = round(RMST_1/RMST_0,4),
+                                         'Median_Ratio' = round(Med_1/Med_0,4)),
+                        measures_by_group=list('pstar'= c('Reference'=pstar_0,'Treated'=pstar_1),
+                                               'p_e1'= c('Reference'=p0_e1,'Treated'=p1_e1),
+                                               'p_e2'= c('Reference'=p0_e2,'Treated'=p1_e2),
+                                               'RMST'= c('Reference'=RMST_0,'Treated'=RMST_1),
+                                               'Median'= c('Reference'=Med_0,'Treated'=Med_1)),
+                        gg_object=NA)
+  
+  ## Print graphic
+  if(plot_res) print(gg1)
+  
+  ## Store plot in the output
+  if(plot_store) return_object$gg_object <- gg1
+  
+  return(invisible(return_object))
 }

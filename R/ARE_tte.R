@@ -18,11 +18,19 @@
 #' @param copula character indicating the copula to be used: "Frank" (default), "Gumbel" or "Clayton". See details for more info.
 #' @param rho numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.
 #' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.
+#' @param subdivisions integer parameter greater than or equal to 10. Number of points used to plot the ARE according to correlation. The default is 50. Ignored if plot_res=FALSE and plot_store=FALSE. 
+#' @param plot_res logical indicating if the ARE according to the correlation should be displayed. The default is FALSE
+#' @param plot_store logical indicating if the plot of ARE according to the correlation is stored for future customization. The default is FALSE
 #' 
-#' @import copula
+#' @rawNamespace import(copula, except = c(profile,coef,logLik,confint))
+#' @import utils
 #' @export 
 #'
-#' @return Returns the ARE value. If the ARE value is larger than 1 then the composite endpoint is preferred over the relevant endpoint. Otherwise, the endpoint 1 is preferred as the primary endpoint of the study.
+#' @return Returns the ARE value along with the fixed correlation. If the ARE 
+#' value is larger than 1 then the composite endpoint is preferred over the 
+#' relevant endpoint. Otherwise, the endpoint 1 is preferred as the primary 
+#' endpoint of the study. In addition, if \code{plot_store=TRUE} an object of 
+#' class \code{ggplot} with the ARE according to the correlation is stored in the output.
 #'
 #' @details Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions. 
 #' For the shape parameters (beta_e1, beta_e2) of the Weibull distribution, we recommend to use \eqn{\beta_j=0.5}, \eqn{\beta_j=1} or \eqn{\beta_j=2} if a decreasing, constant or increasing rates over time are expected, respectively.
@@ -33,7 +41,18 @@
 #'
 #' @references Gomez Melis, G. and Lagakos, S.W. (2013). Statistical considerations when using a composite endpoint for comparing treatment groups. Statistics in Medicine. Vol 32(5), pp. 719-738. https://doi.org/10.1002/sim.5547
 #'
-ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case, copula = 'Frank', rho=0.3, rho_type='Spearman'){ 
+#' @examples
+#' # ARE for a specific study where the composite endpoint is recommended
+#' ARE_tte(p0_e1=0.1, p0_e2=0.1, HR_e1=0.9, HR_e2=0.8, beta_e1 = 1, beta_e2 = 1, 
+#' case=1, copula = "Frank", rho = 0.3, rho_type = "Spearman")
+#' # ARE for a specific study where the composite endpoint is not recommended
+#' ARE_tte(p0_e1=0.1, p0_e2=0.05, HR_e1=0.6, HR_e2=0.8, beta_e1 = 1, beta_e2 = 1, 
+#' case=1, copula = "Frank", rho = 0.3, rho_type = "Spearman")
+
+
+ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, 
+                    case, copula = 'Frank', rho=0.3, rho_type='Spearman', 
+                    subdivisions=50, plot_res=FALSE, plot_store=FALSE){ 
   
   
   requireNamespace("stats")
@@ -57,78 +76,100 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case, copu
     stop("The correlation (rho) must be a number between -1 and 1")
   }else if(!rho_type %in% c('Spearman','Kendall')){
     stop("The correlation type (rho_type) must be one of 'Spearman' or 'Kendall'")
+  }else if(!(is.numeric(subdivisions) && subdivisions>=10)){
+    stop("The number of subdivisions must be an integer greater than or equal to 10")    
+  }else if(!is.logical(plot_res)){
+    stop("The parameter plot_res must be logical")
+  }else if(!is.logical(plot_store)){
+    stop("The parameter plot_store must be logical")      
   }else if(case==4 && p0_e1 + p0_e2 > 1){
     stop("The sum of the proportions of observed events in both endpoints in case 4 must be lower than 1")
   }
   
-  # Copula
-  copula0 <- CopulaSelection(copula,rho,rho_type)
-  which.copula <- copula0[[1]]
-  theta <- copula0[[2]]   
+  # Values of rho where to calculate ARE
+  rho_sel <- rho
+  if(plot_res | plot_store){
+    rho_seq <- unique(c(rho,seq(0.01,0.98,length=subdivisions)))
+  }else{
+    rho_seq <- rho
+  }
   
-  # Marginal distribution and parameters
-  MarginSelec <- MarginalsSelection(beta_e1,beta_e2,HR_e1,HR_e2,p0_e1,p0_e2,case,theta,copula)
-  T1dist   <- MarginSelec[[1]]
-  T2dist   <- MarginSelec[[2]]
-  T1pdist  <- MarginSelec[[3]]
-  T2pdist  <- MarginSelec[[4]]
-  T10param <- MarginSelec[[5]]
-  T20param <- MarginSelec[[6]]
-  T11param <- MarginSelec[[7]]
-  T21param <- MarginSelec[[8]]
-
-  # Bivariate distribution in control and treatment groups
-  distribution0 <- mvdc(copula = which.copula, margins = c(T1dist, T2dist), paramMargins = list(T10param, T20param))
-  distribution1 <- mvdc(copula = which.copula, margins = c(T1dist, T2dist), paramMargins = list(T11param, T21param))
+  # Storage
+  ARE_array <- c()
   
-  if(case==1|case==3) {
+  # Calculate ARE for each rho
+  pb = txtProgressBar(min = 0, max = length(rho_seq), initial = 0)
+  for(rho in rho_seq){
+    setTxtProgressBar(pb,which(rho_seq==rho))
     
-    # Inside the integral in the numerator --> Does not work in a function apart (I do not why)
-    inside_integral <- function(t){
-      
-      Sstar0 <- Sstar(x = t,dist1 = T1pdist, dist2 = T2pdist, param1 = T10param, param2 = T20param, dist_biv = distribution0)
-      Sstar1 <- Sstar(x = t,dist1 = T1pdist, dist2 = T2pdist, param1 = T11param, param2 = T21param, dist_biv = distribution1)
-      
-      fstar0 <- (-grad(Sstar,x = t, dist1 = T1pdist,dist2 = T2pdist, param1 = T10param, param2 = T20param,dist_biv = distribution0))
-      fstar1 <- (-grad(Sstar,x = t, dist1 = T1pdist,dist2 = T2pdist, param1 = T11param, param2 = T21param,dist_biv = distribution1))
-      
-      Lstar0 <- (fstar0/Sstar0)
-      Lstar1 <- (fstar1/Sstar1)
-      
-      HRstar <- (Lstar1/Lstar0)
-      
-      logHRstar <- log(HRstar)
-      
-      ##-- Numerical issues
-      fstar0[fstar0<0] <- 0
-      logHRstar[is.na(logHRstar) | logHRstar==Inf | logHRstar== -Inf] <- 0
-      
-      return(logHRstar*fstar0)
-    }
+    # Copula
+    copula0 <- CopulaSelection(copula=copula,rho=rho,rho_type=rho_type)
+    which.copula <- copula0[[1]]
+    theta <- copula0[[2]]   
     
-    # Numerator
-    integral  <- integrate(inside_integral,lower=0,upper=1,subdivisions=10000,stop.on.error = FALSE) 
-    numerator <- (integral$value)^2
+    # Marginal distribution and parameters
+    MarginSelec <- MarginalsSelection(beta_e1,beta_e2,HR_e1,HR_e2,p0_e1,p0_e2,case,rho,theta,copula)
+    T1dist   <- MarginSelec[[1]]
+    T2dist   <- MarginSelec[[2]]
+    T1pdist  <- MarginSelec[[3]]
+    T2pdist  <- MarginSelec[[4]]
+    T10param <- MarginSelec[[5]]
+    T20param <- MarginSelec[[6]]
+    T11param <- MarginSelec[[7]]
+    T21param <- MarginSelec[[8]]
     
-    # Denominator
-    Sstar0_1 <- Sstar(x=1,dist1=T1pdist,dist2=T2pdist,param1=T10param,param2=T20param,dist_biv= distribution0) 
-    ST10_1 <- 1-do.call(T1pdist,c(q=1,T10param)) 
-    denominator <- ((log(HR_e1))^2)*(1-Sstar0_1)*(1-ST10_1)
+    # Bivariate distribution in control and treatment groups
+    distribution0 <- mvdc(copula = which.copula, margins = c(T1dist, T2dist), paramMargins = list(T10param, T20param))
+    distribution1 <- mvdc(copula = which.copula, margins = c(T1dist, T2dist), paramMargins = list(T11param, T21param))
     
-    # ARE value
-    AREstarT <- numerator/denominator
-    
-    # If the integral is not computed, we assign a missing value
-    if(integral$message!="OK") {AREstarT <- NA}
-    
-  } else if(case==2|case==4) {
+    if(case==1|case==3) {
+      
+      # Inside the integral in the numerator --> Does not work in a function apart (I do not why)
+      inside_integral <- function(t){
+        
+        Sstar0 <- Sstar(x = t,dist1 = T1pdist, dist2 = T2pdist, param1 = T10param, param2 = T20param, dist_biv = distribution0)
+        Sstar1 <- Sstar(x = t,dist1 = T1pdist, dist2 = T2pdist, param1 = T11param, param2 = T21param, dist_biv = distribution1)
+        
+        fstar0 <- (-grad(Sstar,x = t, dist1 = T1pdist,dist2 = T2pdist, param1 = T10param, param2 = T20param,dist_biv = distribution0))
+        fstar1 <- (-grad(Sstar,x = t, dist1 = T1pdist,dist2 = T2pdist, param1 = T11param, param2 = T21param,dist_biv = distribution1))
+        
+        Lstar0 <- (fstar0/Sstar0)
+        Lstar1 <- (fstar1/Sstar1)
+        
+        HRstar <- (Lstar1/Lstar0)
+        
+        logHRstar <- log(HRstar)
+        
+        ##-- Numerical issues
+        fstar0[fstar0<0] <- 0
+        logHRstar[is.na(logHRstar) | logHRstar==Inf | logHRstar== -Inf] <- 0
+        
+        return(logHRstar*fstar0)
+      }
+      
+      # Numerator
+      integral  <- integrate(inside_integral,lower=0,upper=1,subdivisions=10000,stop.on.error = FALSE) 
+      numerator <- (integral$value)^2
+      
+      # Denominator
+      Sstar0_1 <- Sstar(x=1,dist1=T1pdist,dist2=T2pdist,param1=T10param,param2=T20param,dist_biv= distribution0) 
+      ST10_1 <- 1-do.call(T1pdist,c(q=1,T10param)) 
+      denominator <- ((log(HR_e1))^2)*(1-Sstar0_1)*(1-ST10_1)
+      
+      # ARE value
+      AREstarT <- numerator/denominator
+      
+      # If the integral is not computed, we assign a missing value
+      if(integral$message!="OK") {AREstarT <- NA}
+      
+    } else if(case==2|case==4) {
       
       b10 <- T10param$scale
       b20 <- T20param$scale
       b11 <- T11param$scale
       b21 <- T21param$scale
       
-
+      
       # Only marginal Weibull distributions for fT10, fT20, ST10, ST20.
       # fT10 <- function(t) dweibull(x=t,beta_e1,b10)
       # ST10 <- function(t) 1-pweibull(q=t,beta_e1,b10)
@@ -137,7 +178,7 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case, copu
       # ST20 <- function(t) 1-pweibull(q=t,beta_e2,b20)
       fT0 <- function(t,beta,b) dweibull(x=t,beta,b)         # density function
       ST0 <- function(t,beta,b) 1-pweibull(q=t,beta,b)       # survival function
-
+      
       
       
       # Sstar0 and fstar0 for any copula
@@ -213,14 +254,41 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case, copu
       AREstarT <- numerator/((log(HR_e1)^2) * PROBT1UNC_int * (1-Sstar0(1)))
       AREstarT 
     }
+    
+    ARE_array <- c(ARE_array,AREstarT)
+  }
+  close(pb)
   
-  if(AREstarT>1){
-    cat("The use of the composite endpoint as primary endoint is recommended over the use of the relevant endpoint since ARE =",formatC(AREstarT,digits = 3,big.mark = ','),"> 1.\n")
-  }else{
-    cat("The use of the first endpoint as primary endoint is recommended over the use of the composite endpoint since ARE =",formatC(AREstarT,digits = 3,big.mark = ','),"< 1.\n")
+  # if(ARE_array[1]>1){
+  #   cat("The use of the composite endpoint as primary endpoint is recommended over the use of the relevant endpoint since ARE =",
+  #       formatC(ARE_array[1],digits = 3,big.mark = ','),"> 1.\n")
+  # }else{
+  #   cat("The use of the first endpoint as primary endpoint is recommended over the use of the composite endpoint since ARE =",
+  #       formatC(ARE_array[1],digits = 3,big.mark = ','),"< 1.\n")
+  # }
+  
+  if(plot_res | plot_store){
+    ARE <- NULL          # To avoid the note: "no visible binding for global variable 'NULL'"
+    dd <- data.frame(rho=rho_seq, ARE=ARE_array)
+    gg1 <- ggplot(dd,aes(x=rho,y=ARE)) + 
+      geom_line(color='darkblue',size=1.3) +
+      xlab(expression(rho)) + ylab('ARE CE') +
+      scale_y_log10(limits=c(1/max(ARE_array),max(ARE_array))) +
+      geom_hline(yintercept=1,linetype='dashed')
   }
   
-  return(invisible(AREstarT))
+  return_object <- list(ARE=ARE_array[1],
+                        rho=rho_sel,
+                        gg_object=NA)
+  
+  ## Print graphic
+  if(plot_res) print(gg1)
+  
+  ## Store plot in the output
+  if(plot_store) return_object$gg_object <- gg1
+
+  
+  return(invisible(return_object))
 }
 
 
