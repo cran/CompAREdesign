@@ -33,11 +33,7 @@ ARE_tte(
 
 \item{beta_e2}{numeric positive parameter, shape parameter (\eqn{\beta_2}) for a Weibull distribution for the endpoint E2 in the control group. See details for more info.}
 
-\item{case}{integer parameter in {1,2,3,4}
-1: none of the endpoints is death
-2: endpoint 2 is death
-3: endpoint 1 is death
-4: both endpoints are death by different causes}
+\item{case}{integer parameter in \{1,2,3,4\}: (1) none of the endpoints is death; (2) endpoint 2 is death; (3) endpoint 1 is death; (4) both endpoints are death by different causes.}
 
 \item{copula}{character indicating the copula to be used: "Frank" (default), "Gumbel" or "Clayton". See details for more info.}
 

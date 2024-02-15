@@ -4,7 +4,7 @@
 #' @param copula  Copula given from the following list: "Frank" (default), "Gumbel" , "Clayton", "Normal" , "T",
 #'                , "Galambos", "HuslerReiss", "Tawn", "Tev", "FGM" or "Plackett"
 #' @param rho	    Spearman's coefficient between the 2 marginal distributions
-#' @param rhoType type of correlation: "Spearman" (default) or "Kendall"
+#' @param rho_type Type of correlation: "Spearman" (default) or "Kendall"
 #'
 #'
 #' @export 

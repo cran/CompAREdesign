@@ -10,11 +10,7 @@
 #' @param HR_e2 numeric parameter between 0 and 1, expected cause specific hazard Ratio the endpoint E2
 #' @param beta_e1 numeric positive parameter, shape parameter (\eqn{\beta_1}) for a Weibull distribution for the endpoint E1 in the control group. See details for more info.
 #' @param beta_e2 numeric positive parameter, shape parameter (\eqn{\beta_2}) for a Weibull distribution for the endpoint E2 in the control group. See details for more info.
-#' @param case integer parameter in {1,2,3,4}
-#'             1: none of the endpoints is death
-#'             2: endpoint 2 is death
-#'             3: endpoint 1 is death
-#'             4: both endpoints are death by different causes  
+#' @param case integer parameter in \{1,2,3,4\}: (1) none of the endpoints is death; (2) endpoint 2 is death; (3) endpoint 1 is death; (4) both endpoints are death by different causes.  
 #' @param copula character indicating the copula to be used: "Frank" (default), "Gumbel" or "Clayton". See details for more info.
 #' @param rho numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.
 #' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.

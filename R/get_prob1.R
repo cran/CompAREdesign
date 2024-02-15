@@ -1,3 +1,20 @@
+#' Probability of observing the event
+#' 
+#' @description   Returns the probability of observing a single endpoint
+#' 
+#' @param beta1	   Shape parameter for a Weibull law for the relevant event
+#' @param beta2    Shape parameter for a Weibull law for the additional event 
+#' @param b11      Scale parameter of the Weibull distribution in treated arm for the relevant event
+#' @param b21      Scale parameter of the Weibull distribution in treated arm for the additional event
+#' @param case     Censoring case: 1, 2, 3 or 4 
+#' @param rho      Spearman's coefficient between the 2 marginal distributions
+#' @param copula   Copula to use
+#' @param endpoint Endpoint from which it is wanted to obtain the probability of being observed
+#'
+#' @export 
+#' @keywords internal 
+#'
+#'
 get_prob1 <- function(beta1,beta2,b11,b21,case,rho,copula='Frank',endpoint){
   
   ##-- Build copula

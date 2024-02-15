@@ -12,7 +12,7 @@ CopulaSelection(copula, rho, rho_type = "Spearman")
 
 \item{rho}{Spearman's coefficient between the 2 marginal distributions}
 
-\item{rhoType}{type of correlation: "Spearman" (default) or "Kendall"}
+\item{rho_type}{Type of correlation: "Spearman" (default) or "Kendall"}
 }
 \description{
 Build a copula class object from the given family and the corresponding dependence parameter from the given correlation
