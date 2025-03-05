@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Jordi Cortés Martínez, Marta Bofill Roig and Guadalupe Gómez Melis" />
+
+<meta name="date" content="2025-03-04" />
+
+<title>CompAREdesign: Time-to-event endpoints</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">CompAREdesign: Time-to-event endpoints</h1>
+<h4 class="author">Jordi Cortés Martínez, Marta Bofill Roig and
+Guadalupe Gómez Melis</h4>
+<h4 class="date">2025-03-04</h4>
+
+
+
+<p><code>CompAREdesign</code> R package allows the researchers to design
+a randomized clinical trial with a composite endpoint as the primary
+endpoint based solely on the information relative to its components.</p>
+<div id="case-study-zodiac-trial" class="section level2">
+<h2>Case study: ZODIAC Trial</h2>
+<p>This example is based on the data from the <a href="https://doi.org/10.1016/S1470-2045(10)70132-7">ZODIAC trial</a>
+[1]. ZODIAC was a multinational, randomised, double-blind, phase 3 study
+of vandetanib plus docetaxel (Sanofi - Aventis, Paris, France) versus
+placebo plus docetaxel in patients with locally advanced or metastatic
+NCSLC after progression following platinum-based first-line
+chemotherapy. The recent approval and increasing use of pemetrexed as
+first-line therapy in NSCLC suggest a continuing role for docetaxel as
+second-line therapy.</p>
+<p>We can use the information of this study to plan a new similar
+trial.</p>
+<div id="input-parameters" class="section level3">
+<h3>Input Parameters</h3>
+<p>First of all, the information for the components of the composite
+endpoint should be defined based on the information obtained from the
+ZODIAC trial.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="do">## Probabilities of observing the event in control arm during follow-up</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>p0_e1 <span class="ot">&lt;-</span> <span class="fl">0.59</span>   <span class="co"># Death</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>p0_e2 <span class="ot">&lt;-</span> <span class="fl">0.74</span>   <span class="co"># Disease Progression  </span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="do">## Effect size (Cause specific hazard ratios) for each endpoint</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>HR_e1 <span class="ot">&lt;-</span> <span class="fl">0.91</span>   <span class="co"># Death</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>HR_e2 <span class="ot">&lt;-</span> <span class="fl">0.77</span>   <span class="co"># Disease Progression</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="do">## Hazard rates over time</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>beta_e1 <span class="ot">&lt;-</span> <span class="dv">2</span>    <span class="co"># Death --&gt; Increasing risk over time</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>beta_e2 <span class="ot">&lt;-</span> <span class="dv">1</span>    <span class="co"># Disease Progression --&gt; Constant risk over time</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="do">## Correlation</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>rho      <span class="ot">&lt;-</span> <span class="fl">0.1</span>        <span class="co"># Correlation between components</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>rho_type <span class="ot">&lt;-</span> <span class="st">&#39;Spearman&#39;</span> <span class="co"># Type of correlation measure</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>copula   <span class="ot">&lt;-</span> <span class="st">&#39;Frank&#39;</span>    <span class="co"># Copula used to get the joint distribution</span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="do">## Additional parameter</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>case  <span class="ot">&lt;-</span> <span class="dv">3</span>  <span class="co"># 1: No deaths;                  2: Death is the secondary event; </span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>            <span class="co"># 3: Death is the primary event; 4: Both events are death by different causes</span></span></code></pre></div>
+<p>We set <code>case = 3</code> because Death is the primary event:</p>
+<ul>
+<li><p><strong>Endpoint 1:</strong> Death</p></li>
+<li><p><strong>Endpoint 2:</strong> Disease progression</p></li>
+</ul>
+<p>The meaning of all the parameters are described in the following
+table:</p>
+<table>
+<colgroup>
+<col width="16%" />
+<col width="83%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Parameter</th>
+<th align="left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">p0_e1</td>
+<td align="left">Probability of observing event 1 in control arm during
+follow-up</td>
+</tr>
+<tr class="even">
+<td align="left">p0_e2</td>
+<td align="left">Probability of observing event 2 in control arm during
+follow-up</td>
+</tr>
+<tr class="odd">
+<td align="left">HR_e1</td>
+<td align="left">Effect size (Cause specific hazard ratios) for endpoint
+1</td>
+</tr>
+<tr class="even">
+<td align="left">HR_e2</td>
+<td align="left">Effect size (Cause specific hazard ratios) for endpoint
+2</td>
+</tr>
+<tr class="odd">
+<td align="left">beta_e1</td>
+<td align="left">Hazard rate over time for endpoint 1 (&gt;1: Increasing
+risk over time)</td>
+</tr>
+<tr class="even">
+<td align="left">beta_e2</td>
+<td align="left">Hazard rate over time for endpoint 2 (=1: Constant risk
+over time)</td>
+</tr>
+<tr class="odd">
+<td align="left">rho</td>
+<td align="left">Correlation between components</td>
+</tr>
+<tr class="even">
+<td align="left">rho_type</td>
+<td align="left">Type of the correlation measure</td>
+</tr>
+<tr class="odd">
+<td align="left">copula</td>
+<td align="left">Copula used to get the joint distribution</td>
+</tr>
+<tr class="even">
+<td align="left">case</td>
+<td align="left"><p>Additional parameter:</p>
+<ol style="list-style-type: decimal">
+<li><p>No deaths</p></li>
+<li><p>Death is the secondary event</p></li>
+<li><p>Death is the primary event;</p></li>
+<li><p>Both events are death by different causes</p></li>
+</ol></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="are-asymptotic-relatively-efficiency" class="section level3">
+<h3>ARE: Asymptotic Relatively Efficiency</h3>
+<p>We are considering probabilities in the control group of
+<strong>0.59</strong> and <strong>0.74</strong>, with treatment effects
+given by Hazard Ratios of <strong>0.91</strong> and
+<strong>0.77</strong> for Endpoints 1 and 2, respectively. If the
+correlation between the times of both components is low (e.g.,
+<strong>0.1</strong>), the Asymptotic Relative Efficiency (ARE) is
+<strong>8.79</strong>.</p>
+<p>Since the <strong>ARE is greater than 1</strong>, it is recommended
+to use the composite endpoint (CE), which combines both endpoints, as
+the primary endpoint of the trial. In other words, for a given
+significance level and power, the number of required events needed to
+attain the same power would be <strong>8.79 times higher</strong> if
+Endpoint 1 were used instead of CE.</p>
+<p><strong>In this case if we are not sure about the value of the
+correlation between</strong> <strong>components, it is not a problem
+because using the CE as the primary endpoint</strong> <strong>results in
+a more statistically efficient trial design regardless of the</strong>
+<strong>correlation ρ because ARE(ρ) &gt; 1.</strong></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">ARE_tte</span>(<span class="at">p0_e1   =</span> p0_e1    , <span class="at">p0_e2    =</span> p0_e2, </span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>        <span class="at">HR_e1   =</span> HR_e1    , <span class="at">HR_e2    =</span> HR_e2, </span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>        <span class="at">beta_e1 =</span> beta_e1  , <span class="at">beta_e2  =</span> beta_e2,  </span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>        <span class="at">rho     =</span> rho      , <span class="at">rho_type =</span> rho_type, </span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>        <span class="at">copula  =</span> copula   , <span class="at">case     =</span> case,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>        <span class="at">plot_print =</span> <span class="cn">TRUE</span>) </span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<pre><code>## [1] 8.791</code></pre>
+</div>
+<div id="effect-size-of-the-composite-endpoint" class="section level3">
+<h3>Effect size of the Composite Endpoint</h3>
+<p>The function <code>effectsize_tte</code> provides several summary
+measures of the treatment effect:</p>
+<ul>
+<li><code>gAHR</code> (<strong>Geometric Average Hazard
+Ratio</strong>)</li>
+<li><code>AHR</code> (<strong>Geometric Average Hazard
+Ratio</strong>)</li>
+<li><code>RMST Ratio</code> (<strong>Restricted Mean Survival Time
+Ratio</strong>)</li>
+<li><code>Median Ratio</code> (<strong>Median survival time
+ratio</strong>)</li>
+</ul>
+<p>In addition, several measures of the behavior within each group are
+provided:</p>
+<ul>
+<li>RMST (<strong>Restricted Mean Survival Time</strong>)</li>
+<li>Median (<strong>Median survival time</strong>)</li>
+<li>Prob. E1 (<strong>Probability of observing endpoint 1</strong>)</li>
+<li>Prob. E2 (<strong>Probability of observing endpoint 2</strong>)</li>
+<li>Prob. CE (<strong>Probability of observing composite
+endpoint</strong>)</li>
+</ul>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">effectsize_tte</span>(<span class="at">p0_e1   =</span> p0_e1    , <span class="at">p0_e2    =</span> p0_e2, </span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>               <span class="at">HR_e1   =</span> HR_e1    , <span class="at">HR_e2    =</span> HR_e2, </span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>               <span class="at">beta_e1 =</span> beta_e1  , <span class="at">beta_e2  =</span> beta_e2,  </span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>               <span class="at">rho     =</span> rho      , <span class="at">rho_type =</span> rho_type, </span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>               <span class="at">copula  =</span> copula   , <span class="at">case     =</span> case,</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>               <span class="at">plot_print =</span> <span class="cn">TRUE</span>) </span></code></pre></div>
+<pre><code>##  Effect measure Effect value | Group measure Reference Treated
+##  -------------- ------------ | ------------- --------- -------
+##  gAHR           0.8016       |                                
+##  AHR            0.8016       |                                
+##  RMST ratio     1.1633       | RMST          0.3918    0.4558 
+##  Median ratio   1.2321       | Median        0.3212    0.3958 
+##                              | Prob. E1      0.5900    0.5557 
+##                              | Prob. E2      0.7400    0.7125 
+##                              | Prob. CE      0.9300    0.8847</code></pre>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>In the figure above, a slight increase in the HR of the CE is
+observed over time.</p>
+</div>
+<div id="sample-size" class="section level3">
+<h3>Sample size</h3>
+<p><code>samplesize_tte</code> provides the required number of patients
+for the trial using the CE as the primary endpoint as well as the sample
+size for each component. In our case study, the sample size using the CE
+would be <strong>1118</strong>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">samplesize_tte</span>(<span class="at">p0_e1   =</span> p0_e1    , <span class="at">p0_e2    =</span> p0_e2, </span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>               <span class="at">HR_e1   =</span> HR_e1    , <span class="at">HR_e2    =</span> HR_e2, </span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>               <span class="at">beta_e1 =</span> beta_e1  , <span class="at">beta_e2  =</span> beta_e2,  </span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>               <span class="at">rho     =</span> rho      , <span class="at">rho_type =</span> rho_type, </span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>               <span class="at">copula  =</span> copula   , <span class="at">case     =</span> case, </span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>               <span class="at">alpha   =</span> <span class="fl">0.025</span>    , <span class="at">power    =</span> <span class="fl">0.90</span>,</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>               <span class="at">ss_formula =</span> <span class="st">&#39;schoenfeld&#39;</span>, </span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>               <span class="at">plot_print =</span> <span class="cn">TRUE</span>) </span></code></pre></div>
+<pre><code>##  Endpoint           Total sample size
+##  --------           -----------------
+##  Endpoint 1         9744             
+##  Endpoint 2         1002             
+##  Composite endpoint 1120</code></pre>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>The required sample size for a trial with the composite endpoint (CE)
+as the primary endpoint depends on the correlation ρ. In general, as the
+correlation increases, the sample size also increases. The observed
+reduction in sample size for high correlations occurs because, if the
+proportion of observed events is kept constant, events in the second
+component must almost entirely occur before the end of the follow-up
+period. This is necessary to prevent them from being unobserved due to
+the occurrence of the first competitive event.</p>
+</div>
+<div id="influence-of-hazards-rates-over-time-on-the-effect-size" class="section level3">
+<h3>Influence of hazards rates over time on the effect size</h3>
+<p>The impact of hazard rate behavior over time on the treatment effect
+can be analyzed using the function <code>effectsize_tte</code>. The
+parameters <code>beta_1</code> (<span class="math inline">\(\beta_1\)</span>) and <code>beta_2</code> (<span class="math inline">\(\beta_2\)</span>) represent the shape parameters
+of the Weibull marginal distributions for each component. A value of
+<span class="math inline">\(\beta_i &gt; 1\)</span> indicates an
+increasing risk over time, while <span class="math inline">\(\beta_i
+&lt; 1\)</span> represents a decreasing risk, and <span class="math inline">\(\beta_i = 1\)</span> corresponds to a constant
+risk over time.</p>
+<p>To examine how this parameter influences the treatment effect of the
+CE, the HR of the CE is plotted over time. When both risks are constant,
+the HR is almost constant, while when there is an increasing risk of
+disease progression over time, the HR decreases over time.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="do">## Hazards&#39; rates over time Scenario 1</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>beta_e1 <span class="ot">&lt;-</span> <span class="dv">1</span>    <span class="co"># Death               --&gt; CONSTANT over time</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>beta_e2 <span class="ot">&lt;-</span> <span class="dv">2</span>    <span class="co"># Disease Progression --&gt; INCREASE over time</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="fu">effectsize_tte</span>(<span class="at">p0_e1   =</span> p0_e1    , <span class="at">p0_e2    =</span> p0_e2, </span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>               <span class="at">HR_e1   =</span> HR_e1    , <span class="at">HR_e2    =</span> HR_e2, </span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>               <span class="at">beta_e1 =</span> beta_e1  , <span class="at">beta_e2  =</span> beta_e2,  </span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>               <span class="at">rho     =</span> rho      , <span class="at">rho_type =</span> rho_type, </span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>               <span class="at">copula  =</span> copula   , <span class="at">case     =</span> case, </span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>               <span class="at">plot_print =</span> <span class="cn">TRUE</span>) </span></code></pre></div>
+<pre><code>##  Effect measure Effect value | Group measure Reference Treated
+##  -------------- ------------ | ------------- --------- -------
+##  gAHR           0.8046       |                                
+##  AHR            0.8046       |                                
+##  RMST ratio     1.1310       | RMST          0.3070    0.3472 
+##  Median ratio   1.1310       | Median        0.2820    0.3190 
+##                              | Prob. E1      0.5900    0.5557 
+##                              | Prob. E2      0.7400    0.7381 
+##                              | Prob. CE      0.9986    0.9943</code></pre>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="do">## Hazards&#39; rates over time Scenario 2</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>beta_e1 <span class="ot">&lt;-</span> <span class="dv">1</span>    <span class="co"># Death               --&gt; CONSTANT over time</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>beta_e2 <span class="ot">&lt;-</span> <span class="dv">1</span>    <span class="co"># Disease Progression --&gt; CONSTANT over time</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">effectsize_tte</span>(<span class="at">p0_e1   =</span> p0_e1    , <span class="at">p0_e2    =</span> p0_e2, </span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>               <span class="at">HR_e1   =</span> HR_e1    , <span class="at">HR_e2    =</span> HR_e2, </span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>               <span class="at">beta_e1 =</span> beta_e1  , <span class="at">beta_e2  =</span> beta_e2,  </span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>               <span class="at">rho     =</span> rho      , <span class="at">rho_type =</span> rho_type, </span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>               <span class="at">copula  =</span> copula   , <span class="at">case     =</span> case, </span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>               <span class="at">plot_print =</span> <span class="cn">TRUE</span>) </span></code></pre></div>
+<pre><code>##  Effect measure Effect value | Group measure Reference Treated
+##  -------------- ------------ | ------------- --------- -------
+##  gAHR           0.8039       |                                
+##  AHR            0.8039       |                                
+##  RMST ratio     1.2055       | RMST          0.2804    0.3380 
+##  Median ratio   1.2454       | Median        0.1990    0.2478 
+##                              | Prob. E1      0.5900    0.5557 
+##                              | Prob. E2      0.7400    0.7332 
+##                              | Prob. CE      0.9676    0.9360</code></pre>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+</div>
+<div id="summary-plots" class="section level3">
+<h3>Summary plots</h3>
+<p><code>plot_tte</code> returns all the relevant plots for the trial
+design if <code>summary=TRUE</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">plot_tte</span>(<span class="at">p0_e1   =</span> p0_e1    , <span class="at">p0_e2    =</span> p0_e2, </span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>         <span class="at">HR_e1   =</span> HR_e1    , <span class="at">HR_e2    =</span> HR_e2, </span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>         <span class="at">beta_e1 =</span> beta_e1  , <span class="at">beta_e2  =</span> beta_e2,  </span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>         <span class="at">rho     =</span> rho      , <span class="at">rho_type =</span> rho_type, </span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>         <span class="at">copula  =</span> copula   , <span class="at">case     =</span> case, </span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>         <span class="at">summary =</span> <span class="cn">TRUE</span>) </span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>If <code>summary=FALSE</code>, you can select the plot to generate
+among different options (<code>survival</code>, <code>effect</code>,
+<code>ARE</code>, or <code>samplesize</code>) and further customize it
+as needed.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">plot_tte</span>(<span class="at">p0_e1   =</span> p0_e1    , <span class="at">p0_e2    =</span> p0_e2, </span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>         <span class="at">HR_e1   =</span> HR_e1    , <span class="at">HR_e2    =</span> HR_e2, </span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>         <span class="at">beta_e1 =</span> beta_e1  , <span class="at">beta_e2  =</span> beta_e2,  </span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>         <span class="at">rho     =</span> rho      , <span class="at">rho_type =</span> rho_type, </span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>         <span class="at">copula  =</span> copula   , <span class="at">case     =</span> case, </span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>         <span class="at">summary =</span> <span class="cn">FALSE</span>    , <span class="at">type     =</span> <span class="st">&#39;ARE&#39;</span>) <span class="sc">+</span> </span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">&#39;Asymptotic Relative Efficiency&#39;</span>) <span class="sc">+</span> <span class="fu">theme_bw</span>()</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+</div>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<ol style="list-style-type: decimal">
+<li>Herbst RS, Sun Y, Eberhardt WEE, Germonpré P, Saijo N, Zhou C et
+al. Vandetanib plus docetaxel versus docetaxel as second-line treatment
+for patients with advanced non-small-cell lung cancer (ZODIAC): a
+double-blind, randomised, phase 3 trial. Lancet Oncol.
+2010;11(7):619–26.</li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

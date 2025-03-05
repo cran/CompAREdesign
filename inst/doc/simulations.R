@@ -1,0 +1,54 @@
+## ----setup, include=FALSE, echo=FALSE-----------------------------------------
+library('CompAREdesign')            # Load library
+knitr::opts_chunk$set(echo = TRUE)  # Show code
+
+## -----------------------------------------------------------------------------
+## Probabilities of observing the event in control arm during follow-up
+p0_e1 <- 0.59   # Death
+p0_e2 <- 0.74   # Disease Progression  
+
+## Effect size (Cause specific hazard ratios) for each endpoint
+HR_e1 <- 0.91   # Death
+HR_e2 <- 0.77   # Disease Progression
+
+## Hazard rates over time
+beta_e1 <- 2    # Death --> Increasing risk over time
+beta_e2 <- 1    # Disease Progression --> Constant risk over time
+
+## Correlation
+rho      <- 0.1        # Correlation between components
+rho_type <- 'Spearman' # Type of correlation measure
+copula   <- 'Frank'    # Copula used to get the joint distribution
+
+## Additional parameter
+case  <- 3  # 1: No deaths;                  2: Death is the secondary event; 
+            # 3: Death is the primary event; 4: Both events are death by different causes
+
+## Sample size
+sample_size <- 100
+
+## Effect size for each endpoint
+eff_e1 <- -0.0196  
+eff_e2 <- -0.0098
+
+
+## -----------------------------------------------------------------------------
+simulation_timetoevent<- simula_tte(p0_e1, 
+                                    p0_e2, 
+                                    HR_e1, 
+                                    HR_e2, 
+                                    beta_e1 = 1, 
+                                    beta_e2 = 1, 
+                                    case, 
+                                    copula = "Frank", 
+                                    rho = 0.3, 
+                                    rho_type = "Spearman", 
+                                    followup_time = 1, 
+                                    sample_size)
+
+## -----------------------------------------------------------------------------
+head(simulation_timetoevent)
+
+## ----echo = FALSE-------------------------------------------------------------
+rm(list = ls())
+

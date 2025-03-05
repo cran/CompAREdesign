@@ -11,13 +11,14 @@
 #' @param case    Censoring case 
 #' @param theta   Dependence parameter for the bivariate distribution in control group
 #' @param copula  Copula to use
+#' @param seed    Seed for obtaining the probabilities of observing the events by simulation
 #'
 #' @export 
 #' @keywords internal 
 #'
 #'
 
-MarginalsSelection <- function(beta1,beta2,HR1,HR2,p1,p2,case,rho,theta,copula='Frank') 
+MarginalsSelection <- function(beta1,beta2,HR1,HR2,p1,p2,case,rho,theta,copula='Frank', seed=12345) 
 {
 
   dcopula <- get(paste0('d',copula))
@@ -38,17 +39,23 @@ MarginalsSelection <- function(beta1,beta2,HR1,HR2,p1,p2,case,rho,theta,copula='
       }, lower=0 , upper=1-exp(-1/b10^beta1))$value
       return(integral-p1) 
     }
-    limits <- c(0.00001,10000)                                         # The first and the last values must be in opposite signs for the function
-    b10 <- try(uniroot(Fb10, interval=limits,p1=p1)$root,silent=TRUE)  # Find the root (value which equals the function zero)
+    limits <- c(0.1,10)   # The first and the last values must be in opposite signs for the function
+    b10 <- try(uniroot(Fb10, interval=limits,p1=p1, extendInt='yes')$root,silent=TRUE)  
+    while(inherits(b10,'try-error') & limits[1]>=0.00001){
+      limits[1] <- limits[1]/10
+      limits[2] <- limits[2]*10
+      b10 <- try(uniroot(Fb10, interval=limits,p1=p1, extendInt='yes')$root,silent=TRUE)
+    }
+                                                     
     b20 <- 1/(-log(1-p2))^(1/beta2)
+
     if(inherits(b10,'try-error')){
       dcopula <- dFrank
-      b10 <- uniroot(Fb10, interval=limits,p1=p1)$root
+      b10 <- try(uniroot(Fb10, interval=limits,p1=p1, extendInt='yes')$root,silent=TRUE)
       dcopula <- get(paste0('d',copula))
       limits <- c(0.8,1.2)*b10 
-      b10 <- uniroot(Fb10, interval=limits,p1=p1)$root
+      b10 <- try(uniroot(Fb10, interval=limits,p1=p1, extendInt='yes')$root,silent=TRUE)
     }
-  
   ## -- Case 3 --------------------------------------------------------
   } else if (case==3) {
     
@@ -66,14 +73,14 @@ MarginalsSelection <- function(beta1,beta2,HR1,HR2,p1,p2,case,rho,theta,copula='
     limits <- c(0.00001,10000) 
     b20 <- try(uniroot(Fb20, interval=limits,p2=p2)$root,silent=TRUE)
     if(inherits(b20,'try-error')){
-      # First attemp: to approximate for limits based on frank copula
+      # First attempt: to approximate for limits based on frank copula
       dcopula <- dFrank
       b20 <- uniroot(Fb20, interval=limits,p2=p2)$root
       dcopula <- get(paste0('d',copula))
       limits <- c(0.5,2)*b20
       b20 <- try(uniroot(Fb20, interval=limits,p2=p2)$root,silent=TRUE)
       
-      # Second attemp: search for factible limits
+      # Second attempt: search for feasible limits
       if(inherits(b20,'try-error')){
         FFB20 <- c()
         VALUES <- unique(c(seq(0.1,10,0.1),seq(10,100,1),seq(100,1000,10),seq(1000,10000,100)))
@@ -138,34 +145,32 @@ MarginalsSelection <- function(beta1,beta2,HR1,HR2,p1,p2,case,rho,theta,copula='
       c(Fb10_case4(x[1],x[2],p1), Fb20_case4(x[1],x[2],p2))
     }
     
-    sol <- multiroot(f = model, start = c(1,1))
-
-    sol<-as.data.frame(sol[1])
-    b10<-sol[1,]
-    b20<-sol[2,]
+    suppressMessages(capture.output(sol <- tryCatch(multiroot(f = model, start = c(1,1), positive=TRUE), error = function(e) e)))
+    # if(inherits(sol, "error")) suppressMessages(capture.output(sol <- multiroot(f = model, start = c(b10,b20), positive=TRUE)))
+    
+    sol <- as.data.frame(sol[1])
+    b10 <- max(sol[1,],1e-6)
+    b20 <- max(sol[2,],1e-6)
     
   }
-  
+
   # Scale parameters for group 1 b11,b21
   b11 <- b10/HR1^(1/beta1)
   b21 <- b20/HR2^(1/beta2)
   
   # Probabilities p11,p21
-  #p11 <- 1-exp(-(1/b11)^beta1)
-  #p21 <- 1-exp(-(1/b21)^beta2)
   if(case==1){
     p11 <- 1-exp(-(1/b11)^beta1)
     p21 <- 1-exp(-(1/b21)^beta2)
   }else if(case==2){
-    p11 <- get_prob1(beta1,beta2,b11,b21,case,rho,copula,endpoint=1)
+    p11 <- get_prob1(beta1, beta2, b11, b21, case, rho, copula, endpoint = 1, seed = seed)
     p21 <- 1-exp(-(1/b21)^beta2)
   }else if(case==3){
     p11 <- 1-exp(-(1/b11)^beta1)
-    # cat(beta1,beta2,b11,b21,case,rho,copula,"\n")
-    p21 <- get_prob1(beta1,beta2,b11,b21,case,rho,copula,endpoint=2) # theta or rho?
+    p21 <- get_prob1(beta1, beta2, b11, b21, case, rho, copula, endpoint = 2, seed = seed) 
   }else if(case==4){
-    p11 <- get_prob1(beta1,beta2,b11,b21,case,rho,copula,endpoint=1)
-    p21 <- get_prob1(beta1,beta2,b11,b21,case,rho,copula,endpoint=2) # theta or rho?
+    p11 <- get_prob1(beta1, beta2, b11, b21, case, rho, copula, endpoint = 1, seed = seed)
+    p21 <- get_prob1(beta1, beta2, b11, b21, case, rho, copula, endpoint = 2, seed = seed) # theta or rho?
   } 
 
   T1dist<-"weibull"

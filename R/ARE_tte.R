@@ -1,7 +1,7 @@
 #' ARE method for composite time to event endpoints
 #'
 #' @description The composite endpoint is assumed to be a time to event endpoint formed by a combination of two events (E1 and E2). We assume that the endpoint 1 is more relevant for the clinical question than endpoint 2. 
-#' This function calculates the ARE (Assymptotic Relative Efficiency) method for time to event endpoints. The method quantifies the differences in efficiency of using the composite or the relevant as primary endpoint to lead the trial and, moreover, provides a decision rule to choose the primary endpoint. If the ARE is larger than 1, the composite endpoint may be considered the best option as primary endpoint. Otherwise, the relevant endpoint is preferred. 
+#' This function calculates the ARE (Asymptotic Relative Efficiency) method for time to event endpoints. The method quantifies the differences in efficiency of using the composite or the relevant as primary endpoint to lead the trial and, moreover, provides a decision rule to choose the primary endpoint. If the ARE is larger than 1, the composite endpoint may be considered the best option as primary endpoint. Otherwise, the relevant endpoint is preferred. 
 #' 
 #'
 #' @param p0_e1 numeric parameter between 0 and 1, expected proportion of observed events for the endpoint E1
@@ -13,10 +13,10 @@
 #' @param case integer parameter in \{1,2,3,4\}: (1) none of the endpoints is death; (2) endpoint 2 is death; (3) endpoint 1 is death; (4) both endpoints are death by different causes.  
 #' @param copula character indicating the copula to be used: "Frank" (default), "Gumbel" or "Clayton". See details for more info.
 #' @param rho numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.
-#' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.
-#' @param subdivisions integer parameter greater than or equal to 10. Number of points used to plot the ARE according to correlation. The default is 50. Ignored if plot_res=FALSE and plot_store=FALSE. 
-#' @param plot_res logical indicating if the ARE according to the correlation should be displayed. The default is FALSE
-#' @param plot_store logical indicating if the plot of ARE according to the correlation is stored for future customization. The default is FALSE
+#' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Kendall". See details for more info.
+#' @param subdivisions integer parameter greater than or equal to 10. Number of points used to plot the ARE according to correlation. The default is 50. Ignored if plot_print=FALSE and plot_save=FALSE. 
+#' @param plot_print logical indicating if the ARE according to the correlation should be displayed. The default is FALSE
+#' @param plot_save logical indicating if the plot of ARE according to the correlation is stored for future customization. The default is FALSE
 #' 
 #' @rawNamespace import(copula, except = c(profile,coef,logLik,confint))
 #' @import utils
@@ -25,7 +25,7 @@
 #' @return Returns the ARE value along with the fixed correlation. If the ARE 
 #' value is larger than 1 then the composite endpoint is preferred over the 
 #' relevant endpoint. Otherwise, the endpoint 1 is preferred as the primary 
-#' endpoint of the study. In addition, if \code{plot_store=TRUE} an object of 
+#' endpoint of the study. In addition, if \code{plot_save=TRUE} an object of 
 #' class \code{ggplot} with the ARE according to the correlation is stored in the output.
 #'
 #' @details Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions. 
@@ -48,7 +48,7 @@
 
 ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, 
                     case, copula = 'Frank', rho=0.3, rho_type='Spearman', 
-                    subdivisions=50, plot_res=FALSE, plot_store=FALSE){ 
+                    subdivisions=50, plot_print=FALSE, plot_save=FALSE){ 
   
   
   requireNamespace("stats")
@@ -74,17 +74,17 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
     stop("The correlation type (rho_type) must be one of 'Spearman' or 'Kendall'")
   }else if(!(is.numeric(subdivisions) && subdivisions>=10)){
     stop("The number of subdivisions must be an integer greater than or equal to 10")    
-  }else if(!is.logical(plot_res)){
-    stop("The parameter plot_res must be logical")
-  }else if(!is.logical(plot_store)){
-    stop("The parameter plot_store must be logical")      
+  }else if(!is.logical(plot_print)){
+    stop("The parameter plot_print must be logical")
+  }else if(!is.logical(plot_save)){
+    stop("The parameter plot_save must be logical")      
   }else if(case==4 && p0_e1 + p0_e2 > 1){
     stop("The sum of the proportions of observed events in both endpoints in case 4 must be lower than 1")
   }
   
   # Values of rho where to calculate ARE
   rho_sel <- rho
-  if(plot_res | plot_store){
+  if(plot_print | plot_save){
     rho_seq <- unique(c(rho,seq(0.01,0.98,length=subdivisions)))
   }else{
     rho_seq <- rho
@@ -180,13 +180,13 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
       # CS endpoint 1
       aux21 <- function(t,y) theta*exp(-theta*(ST0(t,beta_e1,b10)+y))*(1-exp(-theta))/(exp(-theta)-exp(-theta*ST0(t,beta_e1,b10))-exp(-theta*y)+exp(-theta*(ST0(t,beta_e1,b10)+y)))^2
       aux22 <- function(u) {integrate(aux21,0, ST0(u,beta_e2,b20),t=u,subdivisions=10000)$value} # t=u indicates that we are derivating respect to the other variable in aux21(t,y). That is, respect to y.
-      lambdaC10 <- function(t) aux22(t)*fT0(t,beta_e1,b10)/Sstar0(t)
+      lambdaC10 <- function(t) aux22(t)*fT0(t,beta_e1,b10)/(Sstar0(t) + 1e-6)
       lambdaC11 <- function(t) HR_e1*lambdaC10(t)
       
       # CS endpoint 2
       aux23 <- function(x,t) theta*exp(-theta*(x+ST0(t,beta_e2,b20)))*(1-exp(-theta))/(exp(-theta)-exp(-theta*x)-exp(-theta*ST0(t,beta_e2,b20))+exp(-theta*(x+ST0(t,beta_e2,b20))))^2
       aux24 <- Vectorize(function(u){integrate(aux23,0,ST0(u,beta_e1,b10),t=u,subdivisions=10000)$value}) #t=u indicates that we are derivating respect to the other variable in aux23(x,t). That is, respect to x.
-      lambdaC20 <- function(t) aux24(t)*fT0(t,beta_e2,b20)/Sstar0(t)
+      lambdaC20 <- function(t) aux24(t)*fT0(t,beta_e2,b20)/(Sstar0(t) + 1e-6)
       lambdaC21 <- function(t) HR_e2*lambdaC20(t)
       
       
@@ -195,10 +195,9 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
       # WHENEVER LambdaC20 FAILS, WE INCREASE THE LOWER LIMIT OF INTEGRATION
       LambdaC20_check <- tryCatch(LambdaC20 <- function(t) integrate(lambdaC20,lower=0,upper=t,subdivisions=10000)$value,error = function(e) e)
       lower_LambdaC20 <- 0
-      while(inherits(LambdaC20_check, "error")=="TRUE" ){
+      while(inherits(LambdaC20_check, "error") ){
         lower_LambdaC20 <- lower_LambdaC20 + 0.001
         LambdaC20_check <- tryCatch(LambdaC20 <- function(t) integrate(lambdaC20,lower=0+lower_LambdaC20,upper=t,subdivisions=10000)$value,error = function(e) e)
-        print(LambdaC20_check)
       }
       LambdaC20 <- Vectorize(function(t) integrate(lambdaC20,lower=0+lower_LambdaC20,upper=t,subdivisions=10000)$value)
       
@@ -211,34 +210,26 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
       HRstar <- function(t) Lstar1(t)/Lstar0(t)
       logHRstar <- function(t) log(Lstar1(t)/Lstar0(t))
       
-      temp3 <- Vectorize(function(t) logHRstar(t)*fstar0(t))
+      temp3 <- Vectorize(function(t){res = logHRstar(t) * fstar0(t); res[is.na(res)] <- 0; res}) 
       temp4_check <- tryCatch(temp4 <- integrate(temp3,0,1,subdivisions=10000)$value,error = function(e) e)
       lower_temp4 <- 0
-      while(inherits(temp4_check, "error")=="TRUE" & lower_temp4 < 1){ # add "& lower_temp4 < 1"
+      while(inherits(temp4_check, "error") & lower_temp4 < 1){ # add "& lower_temp4 < 1"
         lower_temp4 <- lower_temp4 + 0.001
         temp4_check<-tryCatch(temp4 <- integrate(temp3, lower_temp4, 1, subdivisions=10000)$value,error = function(e) e)
       }
       temp4 <- integrate(temp3,0+lower_temp4, 1, subdivisions=10000)$value
       numerator <- (temp4)^2
-      
-      #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ## Computation of PROBT1UNC
       PROBT1UNC_temp_num <- function(t) exp(-HR_e2*LambdaC20(t)) * Sstar0(t) * lambdaC10(t)
       PROBT1UNC_temp_den <- function(t) 1/2 * (exp(-LambdaC20(t)) + exp(-HR_e2 * LambdaC20(t)))
       PROBT1UNC_temp <- Vectorize(function(t){PROBT1UNC_temp_num(t)/PROBT1UNC_temp_den(t)})
       PROBT1UNC_int_check <- tryCatch(integrate(PROBT1UNC_temp,lower=0, upper=1,subdivisions=10000)$value, error = function(e) e)
       lower_LambdaC20 <- 0
-      while(inherits(PROBT1UNC_int_check, "error")=="TRUE"){
+      while(inherits(PROBT1UNC_int_check, "error")){
         lower_LambdaC20 <- lower_LambdaC20+0.001
-        PROBT1UNC_int_check <- tryCatch(integrate(PROBT1UNC_temp,lower=lower_LambdaC20, upper=1,theta=theta,HR2=HR_e2,subdivisions=10000)$value, error = function(e) e)
-        print(lower_LambdaC20)
+        # PROBT1UNC_int_check <- tryCatch(integrate(PROBT1UNC_temp,lower=lower_LambdaC20, upper=1,theta=theta,HR2=HR_e2,subdivisions=10000)$value, error = function(e) e)
+        PROBT1UNC_int_check <- tryCatch(integrate(PROBT1UNC_temp, lower = lower_LambdaC20, upper = 1, subdivisions = 10000)$value, error = function(e) e)
       }
-      lower_PROBT1UNC_int <- lower_LambdaC20
-      PROBT1UNC_int <- integrate(PROBT1UNC_temp,lower=lower_PROBT1UNC_int, upper=1,subdivisions=10000)$value
-      ## End of computation of PROBT1UNC
-      #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      PROBT1UNC_int <- PROBT1UNC_int_check
       
       ############################################
       # ARE VALUE:
@@ -250,7 +241,7 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
   }
   # close(pb)
   
-  if(plot_res | plot_store){
+  if(plot_print | plot_save){
     ARE <- NULL          # To avoid the note: "no visible binding for global variable 'NULL'"
     dd <- data.frame(rho=rho_seq, ARE=ARE_array)
     gg1 <- ggplot(dd,aes(x=rho,y=ARE)) + 
@@ -265,10 +256,10 @@ ARE_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
                         gg_object=NA)
   
   ## Print graphic
-  if(plot_res) print(gg1)
+  if(plot_print) print(gg1)
   
   ## Store plot in the output
-  if(plot_store) return_object$gg_object <- gg1
+  if(plot_save) return_object$gg_object <- gg1
 
   ## Print ARE
   print(round(return_object$ARE,3))

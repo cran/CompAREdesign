@@ -14,7 +14,8 @@ MarginalsSelection(
   case,
   rho,
   theta,
-  copula = "Frank"
+  copula = "Frank",
+  seed = 12345
 )
 }
 \arguments{
@@ -35,6 +36,8 @@ MarginalsSelection(
 \item{theta}{Dependence parameter for the bivariate distribution in control group}
 
 \item{copula}{Copula to use}
+
+\item{seed}{Seed for obtaining the probabilities of observing the events by simulation}
 }
 \description{
 Returns the distribution and parameters of the marginal Weibull distributions

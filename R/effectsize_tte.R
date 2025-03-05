@@ -16,11 +16,11 @@
 #' @param case integer parameter in \{1,2,3,4\}: (1) none of the endpoints is death; (2) endpoint 2 is death; (3) endpoint 1 is death; (4) both endpoints are death by different causes. 
 #' @param copula character indicating the copula to be used: "Frank" (default), "Gumbel" or "Clayton". See details for more info.
 #' @param rho numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.
-#' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.
+#' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Kendall". See details for more info.
 #' @param followup_time numeric parameter indicating the maximum follow up time (in any unit). Default is 1.
 #' @param subdivisions integer parameter greater than or equal to 10. Number of subintervals to estimate the effect size. The default is 1000. 
-#' @param plot_res logical indicating if the HR over time should be displayed. The default is FALSE
-#' @param plot_store logical indicating if the plot of HR over time should is stored for future customization. The default is FALSE
+#' @param plot_print logical indicating if the HR over time should be displayed. The default is FALSE
+#' @param plot_save logical indicating if the plot of HR over time should is stored for future customization. The default is FALSE
 #' 
 #' @import ggplot2
 #' @import rootSolve
@@ -52,7 +52,7 @@
 #'     \item{\code{Median}}{array with the median surival time for each group}
 #' }
 #'
-#' In addition, if \code{plot_store=TRUE} an object of class \code{ggplot} with
+#' In addition, if \code{plot_save=TRUE} an object of class \code{ggplot} with
 #' the HR over time for composite endpoint is stored in the list.
 #'     
 #' @details Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions. 
@@ -67,11 +67,18 @@
 #'
 #' @references Schemper, M., Wakounig, S., Heinze, G. (2009). The estimation of average hazard ratios by weighted Cox regression. Stat. in Med. 28(19): 2473--2489. doi:10.1002/sim.3623
 #'
-#'
+#' @examples
+#' effectsize_tte(p0_e1   = .59, p0_e2   = .74, 
+#'                HR_e1   = .91, HR_e2   = .77, 
+#'                beta_e1 = 1,   beta_e2 = 2, 
+#'                case    = 3,   rho     = .5,
+#'                copula  = 'Frank', rho_type   = 'Spearman',
+#'                plot_print = TRUE, plot_save = FALSE) 
+
 effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, 
                            case, copula = 'Frank', rho=0.3, rho_type='Spearman',
                            followup_time=1,
-                           subdivisions=1000, plot_res=FALSE, plot_store=FALSE){
+                           subdivisions=1000, plot_print=FALSE, plot_save=FALSE){
  
   requireNamespace("stats")
   
@@ -99,10 +106,10 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
     stop("The number of subdivisions must be an integer greater than or equal to 10")
   }else if(!(is.numeric(followup_time) && followup_time>0)){
     stop("The followup_time must be a positive numeric value")      
-  }else if(!is.logical(plot_res)){
-    stop("The parameter plot_res must be logical")
-  }else if(!is.logical(plot_store)){
-    stop("The parameter plot_store must be logical")  
+  }else if(!is.logical(plot_print)){
+    stop("The parameter plot_print must be logical")
+  }else if(!is.logical(plot_save)){
+    stop("The parameter plot_save must be logical")  
   }else if(case==4 && p0_e1 + p0_e2 > 1){
     stop("The sum of the proportions of observed events in both endpoints in case 4 must be lower than 1")
   }
@@ -152,39 +159,39 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
   fT21 <- (beta_e2/b21) * ((t/b21)^(beta_e2-1)) * (exp(-(t/b21)^beta_e2))
   
   ##-- Survival for both endpoints
-  ST10 <- exp(-(t/b10)^beta_e1)
-  ST11 <- exp(-(t/b11)^beta_e1)
-  ST20 <- exp(-(t/b20)^beta_e2)
-  ST21 <- exp(-(t/b21)^beta_e2)
+  ST10 <- pmin(1 , exp(-(t/b10)^beta_e1) + 1e-6)
+  ST11 <- pmin(1 , exp(-(t/b11)^beta_e1) + 1e-6)
+  ST20 <- pmin(1 , exp(-(t/b20)^beta_e2) + 1e-6)
+  ST21 <- pmin(1 , exp(-(t/b21)^beta_e2) + 1e-6)
   
   ##-- Survival for the composite endpoint
-  if(copula=='Frank'){
-    Sstar0 <- (-log(1+(exp(-theta*ST10)-1)*(exp(-theta*ST20)-1)/(exp(-theta)-1))/theta)
-    Sstar1 <- (-log(1+(exp(-theta*ST11)-1)*(exp(-theta*ST21)-1)/(exp(-theta)-1))/theta)  
-  }else if(copula=='Clayton'){
-    Sstar0 <- (ST10^(-theta) + ST20^(-theta) - 1)^{-1/theta}
-    Sstar1 <- (ST11^(-theta) + ST21^(-theta) - 1)^{-1/theta}
-  }else if(copula=='Gumbel'){
-    Sstar0 <- exp(-((-log(ST10))^theta + (-log(ST20))^theta)^(1/theta))
-    Sstar1 <- exp(-((-log(ST11))^theta + (-log(ST21))^theta)^(1/theta))      
+  if (copula == "Frank") {
+    Sstar0 <- pmin(1 , (-log(1 + (exp(-theta * ST10) - 1) * (exp(-theta * ST20) - 1)/(exp(-theta) - 1))/theta) + 1e-6)
+    Sstar1 <- pmin(1 , (-log(1 + (exp(-theta * ST11) - 1) * (exp(-theta * ST21) - 1)/(exp(-theta) - 1))/theta) + 1e-6)
+  } else if (copula == "Clayton") {
+    Sstar0 <- pmin(1 , (ST10^(-theta) + ST20^(-theta) - 1)^{-1/theta} + 1e-6)
+    Sstar1 <- pmin(1 , (ST11^(-theta) + ST21^(-theta) - 1)^{-1/theta} + 1e-6)
+  } else if (copula == "Gumbel") {
+    Sstar0 <- pmin(1 , exp(-((-log(ST10))^theta + (-log(ST20))^theta)^(1/theta)) + 1e-6)
+    Sstar1 <- pmin(1 , exp(-((-log(ST11))^theta + (-log(ST21))^theta)^(1/theta)) + 1e-6)
   }
   
   ##-- Density, hazards and hazard ratio for the composite
   if(copula=='Frank'){
-    fstar0 <- (exp(-theta*ST10)*(exp(-theta*ST20)-1)*fT10 + exp(-theta*ST20)*(exp(-theta*ST10)-1)*fT20)/(exp(-theta*Sstar0)*(exp(-theta)-1))
-    fstar1 <- (exp(-theta*ST11)*(exp(-theta*ST21)-1)*fT11 + exp(-theta*ST21)*(exp(-theta*ST11)-1)*fT21)/(exp(-theta*Sstar1)*(exp(-theta)-1))
+    fstar0 <- pmax(0, (exp(-theta*ST10)*(exp(-theta*ST20)-1)*fT10 + exp(-theta*ST20)*(exp(-theta*ST10)-1)*fT20)/(exp(-theta*Sstar0)*(exp(-theta)-1)))
+    fstar1 <- pmax(0, (exp(-theta*ST11)*(exp(-theta*ST21)-1)*fT11 + exp(-theta*ST21)*(exp(-theta*ST11)-1)*fT21)/(exp(-theta*Sstar1)*(exp(-theta)-1)))
   }else if(copula=='Clayton'){
-    fstar0 <- (ST10^(theta+1) * fT10 + ST20^(theta+1) * fT20)/(Sstar0*(ST10^(-theta) + ST20^(-theta) - 1))
-    fstar1 <- (ST11^(theta+1) * fT11 + ST20^(theta+1) * fT21)/(Sstar1*(ST11^(-theta) + ST21^(-theta) - 1))
+    fstar0 <- pmax(0, (ST10^(theta+1) * fT10 + ST20^(theta+1) * fT20)/(Sstar0*(ST10^(-theta) + ST20^(-theta) - 1)))
+    fstar1 <- pmax(0, (ST11^(theta+1) * fT11 + ST20^(theta+1) * fT21)/(Sstar1*(ST11^(-theta) + ST21^(-theta) - 1)))
   }else if(copula=='Gumbel'){
-    fstar0 <- Sstar0 * log(Sstar0) * ((-log(ST10))^(theta-1) * fT10 * (-ST10)^(-1) + (-log(ST20))^(theta-1)  * fT20 * (-ST20)^(-1))/((-log(ST10))^theta + (-log(ST20))^theta)
-    fstar1 <- Sstar1 * log(Sstar1) * ((-log(ST11))^(theta-1) * fT11 * (-ST11)^(-1) + (-log(ST21))^(theta-1)  * fT21 * (-ST21)^(-1))/((-log(ST11))^theta + (-log(ST21))^theta)
+    fstar0 <- pmax(0, Sstar0 * log(Sstar0) * ((-log(ST10))^(theta - 1) * fT10 * (-ST10)^(-1) + (-log(ST20))^(theta - 1) * fT20 * (-ST20)^(-1) + 1e-6)/((-log(ST10))^theta + (-log(ST20))^theta + 1e-6))
+    fstar1 <- pmax(0, Sstar1 * log(Sstar1) * ((-log(ST11))^(theta - 1) * fT11 * (-ST11)^(-1) + (-log(ST21))^(theta - 1) * fT21 * (-ST21)^(-1) + 1e-6)/((-log(ST11))^theta + (-log(ST21))^theta + 1e-6))
   }
   
   ##-- Hazards and hazard ratio for the composite
-  Lstar0 <- (fstar0/Sstar0)
-  Lstar1 <- (fstar1/Sstar1)
-  HRstar <- (Lstar1/Lstar0)
+  Lstar0 <- fstar0/Sstar0
+  Lstar1 <- fstar1/Sstar1
+  HRstar <- (Lstar1 + 1e-6)/(Lstar0 + 1e-6)
   
   ##-- Summary measures for the HR* (see Schempfer 2009)
   HRstar_int <- rowMeans(cbind(HRstar[-1],rev(rev(HRstar)[-1]))) # Mean of HRs for each interval
@@ -205,12 +212,12 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
   gAHR   <- exp(sum(log(HRstar_int)*(fstar0_int+fstar1_int))/sum(fstar0_int+fstar1_int)) # Alternative gAHR weighted by f_0 + f_1
   
   ##-- AHR weighted by f0 and by f0+f1
-  AHR_0_num <- sum(Lstar1_int/(Lstar0_int + Lstar1_int)*fstar0_int)/sum(fstar0_int)
-  AHR_0_den <- sum(Lstar0_int/(Lstar0_int + Lstar1_int)*fstar0_int)/sum(fstar0_int)
+  AHR_0_num <- sum((Lstar1_int + 1e-6)/(Lstar0_int + Lstar1_int + 1e-6)*fstar0_int)/sum(fstar0_int)
+  AHR_0_den <- sum((Lstar0_int + 1e-6)/(Lstar0_int + Lstar1_int + 1e-6)*fstar0_int)/sum(fstar0_int)
   AHR_0 <- AHR_0_num/AHR_0_den                                                           # AHR "_0" indicates that f_0 is used instead of f_1
 
-  AHR_num <- sum(Lstar1_int/(Lstar0_int + Lstar1_int)*(fstar0_int+fstar1_int))/sum(fstar0_int+fstar1_int)
-  AHR_den <- sum(Lstar0_int/(Lstar0_int + Lstar1_int)*(fstar0_int+fstar1_int))/sum(fstar0_int+fstar1_int)
+  AHR_num <- sum((Lstar1_int + 1e-6)/(Lstar0_int + Lstar1_int + 1e-6)*(fstar0_int+fstar1_int))/sum(fstar0_int+fstar1_int)
+  AHR_den <- sum((Lstar0_int + 1e-6)/(Lstar0_int + Lstar1_int + 1e-6)*(fstar0_int+fstar1_int))/sum(fstar0_int+fstar1_int)
   AHR <- AHR_num/AHR_den                                                                 # Alternative AHR weighted by f_0 + f_1
     
   ##-- RMST (Restricted Mean Survival Time)
@@ -235,17 +242,16 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
   
   f_time <- as.numeric(followup_time)          # follow_up_time 
   
-  if(plot_res | plot_store){
+  if(plot_print | plot_save){
     dd <- data.frame(t=t, HRstar=HRstar)
-    ymin <- floor(min(HRstar)*10)/10                 # min(HRstar,0.5)
-    ymax <- max(ceiling(max(HRstar)*10)/10,ymin+0.1) # max(HRstar,1)
+    ymin <- floor(min(HRstar)*10)/10                 
+    ymax <- max(ceiling(max(HRstar)*10)/10,ymin+0.1) 
     gg1 <- ggplot(dd, aes(x=t,y=HRstar)) + geom_line(color='darkblue',size=1.3) +
-      geom_hline(yintercept=1,linetype='dashed') + 
       ylim(ymin,ymax) + 
       scale_x_continuous(limits=c(0,1),breaks=pretty(0:1*f_time)/f_time,
                          labels=pretty(0:1*f_time),expand=c(0,0.01)) +
-      # ggtitle('HR*(t) of the composite endpoint') + 
       xlab('Time') + ylab('HR CE')
+    if(ymin<=1 & ymax>=1) gg1 <- gg1 + geom_hline(yintercept=1,linetype='dashed')
   }
   
   ##-- Output data.frame
@@ -258,22 +264,21 @@ effectsize_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1,
                    check.names = FALSE)
   print(df, row.names = FALSE,right=FALSE)
   
-  return_object <- list(effect_size=list('gAHR' = round(gAHR,4),
-                                         'AHR' = round(AHR,4),
-                                         'RMST_ratio' = round(RMST_1/RMST_0,4),
-                                         'Median_Ratio' = round(Med_1/Med_0,4)),
-                        measures_by_group=list('pstar'= c('Reference'=pstar_0,'Treated'=pstar_1),
-                                               'p_e1'= c('Reference'=p0_e1,'Treated'=p1_e1),
-                                               'p_e2'= c('Reference'=p0_e2,'Treated'=p1_e2),
-                                               'RMST'= c('Reference'=RMST_0,'Treated'=RMST_1),
-                                               'Median'= c('Reference'=Med_0,'Treated'=Med_1)),
-                        gg_object=NA)
+  return_object <- list(effect_size       = list('gAHR'         = round(gAHR,4),
+                                                 'AHR'          = round(AHR,4),
+                                                 'RMST_ratio'   = round(RMST_1/RMST_0,4),
+                                                 'Median_Ratio' = round(Med_1/Med_0,4)),
+                        measures_by_group = list('pstar'  = c('Reference'=pstar_0,'Treated'=pstar_1),
+                                                 'p_e1'   = c('Reference'=p0_e1,  'Treated'=p1_e1),
+                                                 'p_e2'   = c('Reference'=p0_e2,  'Treated'=p1_e2),
+                                                 'Median' = c('Reference'=Med_0,  'Treated'=Med_1)),
+                        gg_object = NA)
   
   ## Print graphic
-  if(plot_res) print(gg1)
+  if(plot_print) print(gg1)
   
   ## Store plot in the output
-  if(plot_store) return_object$gg_object <- gg1
+  if(plot_save) return_object$gg_object <- gg1
   
   return(invisible(return_object))
 }

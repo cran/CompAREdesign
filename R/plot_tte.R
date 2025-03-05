@@ -1,8 +1,8 @@
 #' Plot graphics related to the composite endpoint.
 #'
 #' @description Plot the survival function and the HR for composite endpoint over time and the ARE (Assymptotic Relative Efficiency) and sample size
-#' size according to the correlation.The composite endpoint is assumed to be a time to event endpoint formed by a combination of two events (E1 and E2). We assume that the endpoint 1 is more relevant for the clinical question than endpoint 2. 
-#' #' 
+#' size according to the correlation.The composite endpoint is assumed to be a time to event endpoint formed by a combination of two events (E1 and E2). We assume that the endpoint 1 is more relevant for the clinical question than endpoint 2.
+#' #'
 #'
 #' @param p0_e1 numeric parameter between 0 and 1, expected proportion of observed events for the endpoint E1
 #' @param p0_e2 numeric parameter between 0 and 1, expected proportion of observed events for the endpoint E2
@@ -10,42 +10,52 @@
 #' @param HR_e2 numeric parameter between 0 and 1, expected cause specific hazard Ratio the endpoint E2
 #' @param beta_e1 numeric positive parameter, shape parameter (\eqn{\beta_1}) for a Weibull distribution for the endpoint E1 in the control group. See details for more info.
 #' @param beta_e2 numeric positive parameter, shape parameter (\eqn{\beta_2}) for a Weibull distribution for the endpoint E2 in the control group. See details for more info.
-#' @param case integer parameter in \{1,2,3,4\}: (1) none of the endpoints is death; (2) endpoint 2 is death; (3) endpoint 1 is death; (4) both endpoints are death by different causes. 
+#' @param case integer parameter in \{1,2,3,4\}: (1) none of the endpoints is death; (2) endpoint 2 is death; (3) endpoint 1 is death; (4) both endpoints are death by different causes.
 #' @param copula character indicating the copula to be used: "Frank" (default), "Gumbel" or "Clayton". See details for more info.
 #' @param rho numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.
-#' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.
+#' @param rho_type character indicating the type of correlation to be used: "Spearman" (default) or "Kendall". See details for more info.
 #' @param followup_time numeric parameter indicating the maximum follow up time (in any unit). Default is 1.
 #' @param alpha numeric parameter. The probability of type I error. By default \eqn{\alpha=0.05}
 #' @param power numeric parameter. The power to detect the treatment effect. By default \eqn{1-\beta=0.80}
-#' @param ss_formula character indicating the formula to be used for the sample size calculation on the single components: 'schoenfeld' (default) or 'freedman' 
+#' @param ss_formula character indicating the formula to be used for the sample size calculation on the single components: 'schoenfeld' (default) or 'freedman'
+#' @param summary logical. TRUE if you want all the relevant plots for the trial design 
+#' @param type character indicating the type of plot: 'survival', 'effect', 'ARE', 'samplesize'
+#' 
 #' 
 #' @import ggpubr
-#' @export 
+#' @export
 #'
 #' @return Four plots related to composite endpoint are returned:
 #' \describe{
 #' \item{S}{Survival curve for the composite endpoint over time}
 #' \item{HR}{Hazard Ratio for the composite endpoint over time}
 #' \item{ARE}{ARE according to correlation (\eqn{\rho})}
-#' \item{SS}{Sample size for the composite endpoint according to correlation (\eqn{\rho})} 
+#' \item{SS}{Sample size for the composite endpoint according to correlation (\eqn{\rho})}
 #' }
-#' 
-#' @details Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions. 
+#'
+#' @details Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions.
 #' For the shape parameters (beta_e1, beta_e2) of the Weibull distribution, we recommend to use \eqn{\beta_j=0.5}, \eqn{\beta_j=1} or \eqn{\beta_j=2} if a decreasing, constant or increasing rates over time are expected, respectively.
 #' For the correlation (rho) between both endpoints, generally a positive value is expected as it has no sense to design an study with two endpoints negatively correlated. We recommend to use \eqn{\rho=0.1}, \eqn{\rho=0.3} or \eqn{\rho=0.5} for weak, mild and moderate correlations, respectively.
 #' For the type of correlation (rho_type), although two different type of correlations are implemented, we recommend the use of the Spearman's correlation.
 #' In any case, if no information is available on these parameters, we recommend to use the default values provided by the function.
 #'
-#'
-#'
+#' @examples
+#' library(ggplot2)
+#' plot_tte(p0_e1   = .59, p0_e2   = .74, 
+#'          HR_e1   = .91, HR_e2   = .77, 
+#'          beta_e1 = 1,   beta_e2 = 2, 
+#'          case    = 3,   rho     = .5,
+#'          copula  = 'Frank', rho_type = 'Spearman',
+#'          summary = FALSE,   type = 'effect', 
+#'          followup_time=1) + theme_bw()
 
 
-plot_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case, 
+plot_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case,
                      copula = 'Frank', rho=0.3, rho_type='Spearman',
                      followup_time=1,
-                     alpha=0.05, power=0.80 ,ss_formula='schoenfeld'){ 
-  
-  
+                     alpha=0.05, power=0.80 ,ss_formula='schoenfeld', summary = FALSE, type = "survival"){
+
+
   requireNamespace("stats")
   if(p0_e1 < 0 || p0_e1 > 1){
     stop("The probability of observing the event E1 (p_e1) must be a number between 0 and 1")
@@ -77,35 +87,67 @@ plot_tte <- function(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case,
     stop("The power must be a numeric value between 0 and 1")
   }else if(!ss_formula %in% c('schoenfeld','freedman')){
     stop("The selected formula (ss_formula) must be one of 'schoenfeld' (default) or 'freedman'")
+  }else if(!is.logical(summary)){
+    stop("The argument summary must be logical")
+  }else if(!type %in% c('survival','effect','ARE','samplesize')){
+    stop("The argument type must be one of 'survival','effect','ARE' or 'samplesize'")
   }
-  
 
-  invisible(capture.output(plot_surv   <- surv_tte(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=beta_e1, beta_e2=beta_e2, case=case, 
-                                copula = copula, rho=rho, rho_type=rho_type,
-                                followup_time=followup_time,
-                                plot_res=FALSE,plot_store=TRUE)$gg_object))
-  
-  invisible(capture.output(plot_effect <- effectsize_tte(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=beta_e1, beta_e2=beta_e2, case=case,  
-                                copula = copula, rho=rho, rho_type=rho_type,
-                                followup_time=followup_time,
-                                plot_res=FALSE,plot_store=TRUE)$gg_object))
-  
-  invisible(capture.output(plot_ARE    <- ARE_tte(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=beta_e1, beta_e2=beta_e2, case=case,  
-                                copula = copula, rho=rho, rho_type=rho_type, 
-                                plot_res=FALSE,plot_store=TRUE)$gg_object))
-  
-  invisible(capture.output(plot_ss     <- samplesize_tte(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=1, beta_e2=1, case, 
-                                copula = copula, rho=rho, rho_type=rho_type, 
-                                plot_res=FALSE,plot_store=TRUE, 
-                                alpha=0.05, power=0.80 ,ss_formula='schoenfeld')$gg_object))
-  
-    
-  print(ggarrange(plot_surv,
-                  plot_effect,
-                  plot_ARE,
-                  plot_ss,ncol=2,nrow=2))
-  
-  
+  if(summary | type == "survival"){
+    invisible(capture.output(plot_surv   <- surv_tte(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=beta_e1, beta_e2=beta_e2, case=case,
+                                                     copula = copula, rho=rho, rho_type=rho_type,
+                                                     followup_time = followup_time,
+                                                     plot_print = FALSE, plot_save = TRUE)$gg_object))    
+  }
+
+  if(summary | type == "effect"){
+    invisible(capture.output(plot_effect <- effectsize_tte(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=beta_e1, beta_e2=beta_e2, case=case,
+                                                           copula = copula, rho=rho, rho_type=rho_type,
+                                                           followup_time=followup_time,
+                                                           plot_print=FALSE, plot_save=TRUE)$gg_object))
+  }
+
+  if(summary | type == "ARE"){
+    invisible(capture.output(plot_ARE    <- ARE_tte(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=beta_e1, beta_e2=beta_e2, case=case,
+                                                    copula = copula, rho=rho, rho_type=rho_type,
+                                                    plot_print=FALSE,plot_save=TRUE)$gg_object))
+  }
+
+  if(summary | type == "samplesize"){
+    invisible(capture.output(plot_ss     <- samplesize_tte(p0_e1, p0_e2, HR_e1, HR_e2, beta_e1=beta_e1, beta_e2=beta_e2, case,
+                                                           copula = copula, rho=rho, rho_type=rho_type,
+                                                           plot_print=FALSE,plot_save=TRUE,
+                                                           alpha=alpha, power=power ,ss_formula=ss_formula)$gg_object))
+  }
+
+
+
+  if(summary){
+
+    return(ggarrange(plot_surv, plot_effect, plot_ARE, plot_ss, ncol = 2, nrow = 2))
+
+  } else if(type=='survival' & summary == FALSE){
+
+    return(plot_surv)
+
+  } else if(type=='effect' & summary == FALSE){
+
+    return(plot_effect)
+
+  } else if(type=='ARE' & summary == FALSE){
+
+    return(plot_ARE)
+
+  } else if(type=='samplesize' & summary == FALSE){
+
+    return(plot_ss)
+
+  }
+
+
+
+
+
 }
 
 

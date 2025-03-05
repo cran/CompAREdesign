@@ -17,8 +17,8 @@ effectsize_tte(
   rho_type = "Spearman",
   followup_time = 1,
   subdivisions = 1000,
-  plot_res = FALSE,
-  plot_store = FALSE
+  plot_print = FALSE,
+  plot_save = FALSE
 )
 }
 \arguments{
@@ -40,15 +40,15 @@ effectsize_tte(
 
 \item{rho}{numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.}
 
-\item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.}
+\item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Kendall". See details for more info.}
 
 \item{followup_time}{numeric parameter indicating the maximum follow up time (in any unit). Default is 1.}
 
 \item{subdivisions}{integer parameter greater than or equal to 10. Number of subintervals to estimate the effect size. The default is 1000.}
 
-\item{plot_res}{logical indicating if the HR over time should be displayed. The default is FALSE}
+\item{plot_print}{logical indicating if the HR over time should be displayed. The default is FALSE}
 
-\item{plot_store}{logical indicating if the plot of HR over time should is stored for future customization. The default is FALSE}
+\item{plot_save}{logical indicating if the plot of HR over time should is stored for future customization. The default is FALSE}
 }
 \value{
 A list formed by two lists: \code{effect_size}, which contains the 
@@ -74,7 +74,7 @@ some relevant measures for each group
     \item{\code{Median}}{array with the median surival time for each group}
 }
 
-In addition, if \code{plot_store=TRUE} an object of class \code{ggplot} with
+In addition, if \code{plot_save=TRUE} an object of class \code{ggplot} with
 the HR over time for composite endpoint is stored in the list.
 }
 \description{
@@ -94,6 +94,14 @@ In any case, if no information is available on these parameters, we recommend to
 
 All returned expected effect sizes for the composite endpoint should be interpreted in relative terms (treated to control). 
 gAHR and AHR represent the risk reduction that will be achieved with the new therapy, while RMST_ratio and Median_ratio represent the gain in time gain terms until the event.
+}
+\examples{
+effectsize_tte(p0_e1   = .59, p0_e2   = .74, 
+               HR_e1   = .91, HR_e2   = .77, 
+               beta_e1 = 1,   beta_e2 = 2, 
+               case    = 3,   rho     = .5,
+               copula  = 'Frank', rho_type   = 'Spearman',
+               plot_print = TRUE, plot_save = FALSE) 
 }
 \references{
 Schemper, M., Wakounig, S., Heinze, G. (2009). The estimation of average hazard ratios by weighted Cox regression. Stat. in Med. 28(19): 2473--2489. doi:10.1002/sim.3623

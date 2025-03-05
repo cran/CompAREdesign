@@ -18,7 +18,9 @@ plot_tte(
   followup_time = 1,
   alpha = 0.05,
   power = 0.8,
-  ss_formula = "schoenfeld"
+  ss_formula = "schoenfeld",
+  summary = FALSE,
+  type = "survival"
 )
 }
 \arguments{
@@ -40,7 +42,7 @@ plot_tte(
 
 \item{rho}{numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.}
 
-\item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.}
+\item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Kendall". See details for more info.}
 
 \item{followup_time}{numeric parameter indicating the maximum follow up time (in any unit). Default is 1.}
 
@@ -49,6 +51,10 @@ plot_tte(
 \item{power}{numeric parameter. The power to detect the treatment effect. By default \eqn{1-\beta=0.80}}
 
 \item{ss_formula}{character indicating the formula to be used for the sample size calculation on the single components: 'schoenfeld' (default) or 'freedman'}
+
+\item{summary}{logical. TRUE if you want all the relevant plots for the trial design}
+
+\item{type}{character indicating the type of plot: 'survival', 'effect', 'ARE', 'samplesize'}
 }
 \value{
 Four plots related to composite endpoint are returned:
@@ -56,18 +62,28 @@ Four plots related to composite endpoint are returned:
 \item{S}{Survival curve for the composite endpoint over time}
 \item{HR}{Hazard Ratio for the composite endpoint over time}
 \item{ARE}{ARE according to correlation (\eqn{\rho})}
-\item{SS}{Sample size for the composite endpoint according to correlation (\eqn{\rho})} 
+\item{SS}{Sample size for the composite endpoint according to correlation (\eqn{\rho})}
 }
 }
 \description{
 Plot the survival function and the HR for composite endpoint over time and the ARE (Assymptotic Relative Efficiency) and sample size
-size according to the correlation.The composite endpoint is assumed to be a time to event endpoint formed by a combination of two events (E1 and E2). We assume that the endpoint 1 is more relevant for the clinical question than endpoint 2. 
+size according to the correlation.The composite endpoint is assumed to be a time to event endpoint formed by a combination of two events (E1 and E2). We assume that the endpoint 1 is more relevant for the clinical question than endpoint 2.
 #'
 }
 \details{
-Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions. 
+Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions.
 For the shape parameters (beta_e1, beta_e2) of the Weibull distribution, we recommend to use \eqn{\beta_j=0.5}, \eqn{\beta_j=1} or \eqn{\beta_j=2} if a decreasing, constant or increasing rates over time are expected, respectively.
 For the correlation (rho) between both endpoints, generally a positive value is expected as it has no sense to design an study with two endpoints negatively correlated. We recommend to use \eqn{\rho=0.1}, \eqn{\rho=0.3} or \eqn{\rho=0.5} for weak, mild and moderate correlations, respectively.
 For the type of correlation (rho_type), although two different type of correlations are implemented, we recommend the use of the Spearman's correlation.
 In any case, if no information is available on these parameters, we recommend to use the default values provided by the function.
+}
+\examples{
+library(ggplot2)
+plot_tte(p0_e1   = .59, p0_e2   = .74, 
+         HR_e1   = .91, HR_e2   = .77, 
+         beta_e1 = 1,   beta_e2 = 2, 
+         case    = 3,   rho     = .5,
+         copula  = 'Frank', rho_type = 'Spearman',
+         summary = FALSE,   type = 'effect', 
+         followup_time=1) + theme_bw()
 }

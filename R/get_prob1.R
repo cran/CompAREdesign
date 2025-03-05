@@ -15,7 +15,7 @@
 #' @keywords internal 
 #'
 #'
-get_prob1 <- function(beta1,beta2,b11,b21,case,rho,copula='Frank',endpoint){
+get_prob1 <- function(beta1,beta2,b11,b21,case,rho,copula='Frank',endpoint, seed = 12345){
   
   ##-- Build copula
   copula0 <- CopulaSelection(copula=copula,rho=rho,rho_type='Spearman')
@@ -33,8 +33,8 @@ get_prob1 <- function(beta1,beta2,b11,b21,case,rho,copula='Frank',endpoint){
   prop_p <- function(d,p) sum(d[,p]<d[,3-p])/nrow(d)
   
   ##-- Calculate probabilities
-  set.seed(12345)
-  d <- rMvdc(10000,distribution1)
+  if(!is.na(seed)) set.seed(seed)
+  d  <- rMvdc(10000,distribution1)
   p1 <- prop_p(d=d,p=endpoint)
   
   return(p1)

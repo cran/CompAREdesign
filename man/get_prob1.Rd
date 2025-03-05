@@ -4,7 +4,17 @@
 \alias{get_prob1}
 \title{Probability of observing the event}
 \usage{
-get_prob1(beta1, beta2, b11, b21, case, rho, copula = "Frank", endpoint)
+get_prob1(
+  beta1,
+  beta2,
+  b11,
+  b21,
+  case,
+  rho,
+  copula = "Frank",
+  endpoint,
+  seed = 12345
+)
 }
 \arguments{
 \item{beta1}{Shape parameter for a Weibull law for the relevant event}

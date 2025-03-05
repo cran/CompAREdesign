@@ -1,0 +1,83 @@
+---
+title: "CompAREdesign: Binary endpoints"
+author: "Marta Bofill Roig, Jordi Cortés Martínez and Guadalupe Gómez Melis"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Binary endpoints}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+library('CompAREdesign')            # Load library
+knitr::opts_chunk$set(echo = TRUE)  # Show code
+```
+
+## Binary endpoint: TUXEDO TRIAL
+
+This example is based on the data from the [TUXEDO trial](https://doi.org/10.1056/nejmoa1510188) [1].
+
+The Taxus Element versus Xience Prime in a Diabetic Population (TUXEDO)–India study is an investigator-initiated, multicenter, randomized clinical trial. The trial protocol is available with the full text of this article at NEJM.org. The trial was funded by Boston Scientific, the manufacturer of the paclitaxeleluting stent (Taxus Element). 
+
+### Input Parameters
+
+To use the functions in CompAREdesign, we first of all need to include the information for the components of the composite endpoint.
+
+```{r}
+## Probabilities of observing the event in control arm at the end of follow-up
+p0_e1 <- 0.059    # Ischemia-driven target-lesion revascularization 
+p0_e2 <- 0.032    # Cardiac death or target-vessel MI 
+
+## Effect size (absolute reduction) for each endpoint
+AR_e1 <- -0.0196  # Ischemia-driven target-lesion revascularization 
+AR_e2 <- -0.0098  # Cardiac death or target-vessel MI
+
+## Correlation
+rho   <- 0.4
+```
+
+### ARE: Asymptotic Relatively Efficiency
+
+Aiming to compare the gain in power of using the composite endpoint over the most relevant of its components. One can use the function ARE. 
+As the ARE is greater than 1, we can state that the design using the composite endpoint is more efficient.
+
+```{r}
+ARE_cbe(p0_e1   = p0_e1  , p0_e2   = p0_e2, 
+        eff_e1  = AR_e1  , eff_e2  = AR_e2, 
+        effm_e1 = "diff" , effm_e2 = "diff", effm_ce = "or",
+        rho     = rho) 
+```
+
+### Effect size of the Composite Endpoint
+
+If we can anticipate the baseline information of the composite components and expected effect sizes together with the correlation between the components, we can obtain the expected treatment effect on the composite endpoint (odds ratio, *OR*).
+
+```{r}
+effectsize_cbe(p0_e1   = p0_e1  , p0_e2   = p0_e2, 
+               eff_e1  = AR_e1  , eff_e2  = AR_e2, 
+               effm_e1 = "diff" , effm_e2 = "diff", effm_ce = "or",
+               rho     = rho) 
+```
+
+### Sample size
+
+Lastly, we can compute the required sample size for the design using the composite endpoint, in this case obtaining **2644**.
+
+```{r}
+samplesize_cbe(p0_e1   = p0_e1  , p0_e2   = p0_e2, 
+               eff_e1  = AR_e1  , eff_e2  = AR_e2, 
+               effm_e1 = "diff" , effm_e2 = "diff", effm_ce = "or",
+               rho     = rho,
+               alpha   = 0.05, beta = 0.2) 
+```
+
+## References
+
+1. Kaul U, Bangalore S, Seth A, Priyadarshini A, Rajpal KA, Tejas MP et al. Paclitaxel-Eluting versus EverolimusEluting Coronary Stents in Diabetes. N Engl J Med. 2015;373(18):1709-19.
+
+
+
+```{r, echo = FALSE}
+rm(list = ls())
+```

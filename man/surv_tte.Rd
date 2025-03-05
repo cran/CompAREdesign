@@ -16,8 +16,8 @@ surv_tte(
   rho = 0.3,
   rho_type = "Spearman",
   followup_time = 1,
-  plot_res = TRUE,
-  plot_store = FALSE
+  plot_print = TRUE,
+  plot_save = FALSE
 )
 }
 \arguments{
@@ -39,29 +39,38 @@ surv_tte(
 
 \item{rho}{numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.}
 
-\item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.}
+\item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Kendall". See details for more info.}
 
 \item{followup_time}{numeric parameter indicating the maximum follow up time (in any unit). Default is 1.}
 
-\item{plot_res}{logical indicating if the survival curves should be displayed. The default is TRUE}
+\item{plot_print}{logical indicating if the survival curves should be displayed. The default is TRUE}
 
-\item{plot_store}{logical indicating if the plot of the survival curve for composite endpoint is stored for future customization. The default is FALSE}
+\item{plot_save}{logical indicating if the plot of the survival curve for composite endpoint is stored for future customization. The default is FALSE}
 }
 \value{
-For each group, if  \code{plot_res=TRUE}, the function returns a plot 
-of the survival functions for composite endpoint as well as the plots of the 
+For each group, if  \code{plot_print=TRUE}, the function returns a plot
+of the survival functions for composite endpoint as well as the plots of the
 survival function for each component.
 }
 \description{
-It provides the survival function for time-to-event composite outcomes. 
+It provides the survival function for time-to-event composite outcomes.
 The composite endpoint is assumed to be a time-to-event endpoint formed by a combination of two events (E1 and E2).
 The effect size is calculated on the basis of anticipated information on the composite components and the correlation between them.
 Marginal distributions are assumed weibull for both endpoints.
 }
 \details{
-Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions. 
+Some parameters might be difficult to anticipate, especially the shape parameters of Weibull distributions and those referred to the relationship between the marginal distributions.
 For the shape parameters (beta_e1, beta_e2) of the Weibull distribution, we recommend to use \eqn{\beta_j=0.5}, \eqn{\beta_j=1} or \eqn{\beta_j=2} if a decreasing, constant or increasing rates over time are expected, respectively.
 For the correlation (rho) between both endpoints, generally a positive value is expected as it has no sense to design an study with two endpoints negatively correlated. We recommend to use \eqn{\rho=0.1}, \eqn{\rho=0.3} or \eqn{\rho=0.5} for weak, mild and moderate correlations, respectively.
 For the type of correlation (rho_type), although two different type of correlations are implemented, we recommend the use of the Spearman's correlation.
 In any case, if no information is available on these parameters, we recommend to use the default values provided by the function.
+}
+\examples{
+surv_tte(p0_e1   = .59, p0_e2   = .74, 
+         HR_e1   = .91, HR_e2   = .77, 
+         beta_e1 = 1,   beta_e2 = 2, 
+         case    = 3,   rho     = .5,
+         copula  = 'Frank', rho_type   = 'Spearman',
+         plot_print = TRUE, plot_save = FALSE,
+         followup_time = 2)
 }

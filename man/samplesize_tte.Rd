@@ -19,8 +19,8 @@ samplesize_tte(
   power = 0.8,
   ss_formula = "schoenfeld",
   subdivisions = 50,
-  plot_res = FALSE,
-  plot_store = FALSE
+  plot_print = FALSE,
+  plot_save = FALSE
 )
 }
 \arguments{
@@ -42,7 +42,7 @@ samplesize_tte(
 
 \item{rho}{numeric parameter between -1 and 1, Spearman's correlation coefficient o Kendall Tau between the marginal distribution of the times to the two events E1 and E2. See details for more info.}
 
-\item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Tau". See details for more info.}
+\item{rho_type}{character indicating the type of correlation to be used: "Spearman" (default) or "Kendall". See details for more info.}
 
 \item{alpha}{numeric parameter. The probability of type I error. By default \eqn{\alpha=0.05}}
 
@@ -50,11 +50,11 @@ samplesize_tte(
 
 \item{ss_formula}{character indicating the formula to be used for the sample size calculation on the single components: 'schoenfeld' (default) or 'freedman'}
 
-\item{subdivisions}{integer parameter greater than or equal to 10. Number of points used to plot the sample size according to correlation. The default is 50. Ignored if plot_res=FALSE and plot_store=FALSE.}
+\item{subdivisions}{integer parameter greater than or equal to 10. Number of points used to plot the sample size according to correlation. The default is 50. Ignored if plot_print=FALSE and plot_save=FALSE.}
 
-\item{plot_res}{logical indicating if the sample size according to the correlation should be displayed. The default is FALSE}
+\item{plot_print}{logical indicating if the sample size according to the correlation should be displayed. The default is FALSE}
 
-\item{plot_store}{logical indicating if the plot of sample size according to the correlation is stored for future customization. The default is FALSE}
+\item{plot_save}{logical indicating if the plot of sample size according to the correlation is stored for future customization. The default is FALSE}
 }
 \value{
 A list containing the following components:
@@ -65,7 +65,7 @@ A list containing the following components:
   \item{\code{ss_Ec}}{Total sample size (both groups) for a trial using composite endpoint as primary endpoint}
 } 
 
-In addition, if \code{plot_store=TRUE} an object of class \code{ggplot} with
+In addition, if \code{plot_save=TRUE} an object of class \code{ggplot} with
 the sample size for composite endpoint according to correlation is stored 
 in the list.
 }
@@ -83,7 +83,17 @@ For the type of correlation (rho_type), although two different type of correlati
 In any case, if no information is available on these parameters, we recommend to use the default values provided by the function.
 
 The user can choose between the two most common formulae (Schoenfeld and Freedman) for the sample size calculation for the single components. 
-Schoenfeld formula always be used for the composite endpoint.
+Schoenfeld formula always be used for the composite endpoint. Both Freedman's and Schoenfeld's formulas are nearly correct when the number of events, 
+is large and the groups are balanced. Schoenfeld's formula generally yields a lower required number of events. From a parsimonious perspective, 
+Schoenfeld's formula is preferable when minimizing the sample size is the main criterion.
+}
+\examples{
+samplesize_tte(p0_e1   = .59, p0_e2   = .74, 
+               HR_e1   = .91, HR_e2   = .77, 
+               beta_e1 = 1,   beta_e2 = 2, 
+               case    = 3,   rho     = .5,
+               copula  = 'Frank', rho_type   = 'Spearman',
+               plot_print = FALSE, plot_save = FALSE)
 }
 \references{
 Friedman L.M., Furberg C.D., DeMets D.L. Fundamentals of Clinical Trials. 3rd ed. New York: Springer; 1998.
